@@ -7,7 +7,7 @@ import time
 # Ajouter le répertoire parent au PYTHONPATH pour permettre les imports
 sys.path.append(str(Path(__file__).parent.parent))
 
-from backend.app.init_db import init_db
+from app.init_db import init_db
 
 async def setup():
     """Initialiser la base de données"""
