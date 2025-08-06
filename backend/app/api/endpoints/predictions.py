@@ -17,6 +17,56 @@ from app.models.models import FPrediCovid, Base
 
 router = APIRouter()
 
+@router.get("/models", tags=["IA - Info modèle"])
+async def get_models_info():
+    """
+    Retourne les informations sur les modèles ML utilisés
+    """
+    return {
+        "models": [
+            {
+                "name": "Random Forest",
+                "type": "Ensemble Learning",
+                "description": "Forêt aléatoire pour prédiction des nouveaux cas COVID-19",
+                "metrics": {
+                    "accuracy": "Classification Accuracy",
+                    "f1_score": "F1 Score",
+                    "precision": "Precision Score"
+                },
+                "input_features": ["historical_cases", "temporal_patterns", "demographic_data"],
+                "output": "new_cases_prediction"
+            },
+            {
+                "name": "XGBoost", 
+                "type": "Gradient Boosting",
+                "description": "XGBoost pour prédiction des décès COVID-19",
+                "metrics": {
+                    "rmse": "Root Mean Square Error",
+                    "mae": "Mean Absolute Error",
+                    "r2_score": "R-squared"
+                },
+                "input_features": ["new_cases", "population_density", "healthcare_capacity"],
+                "output": "new_deaths_prediction"
+            },
+            {
+                "name": "RF_XGB_Ensemble",
+                "type": "Ensemble Model", 
+                "description": "Modèle ensemble combinant Random Forest et XGBoost pour prédictions multi-indicateurs",
+                "metrics": {
+                    "ensemble_accuracy": "Weighted Average Accuracy",
+                    "cross_validation_score": "5-fold CV Score"
+                },
+                "input_features": ["time_series_data", "geographic_features", "epidemiological_indicators"],
+                "output": "multi_indicator_predictions",
+                "indicators": ["new_cases", "new_deaths", "countries_reporting"]
+            }
+        ],
+        "technologies": ["scikit-learn", "xgboost", "pandas", "numpy", "joblib"],
+        "last_training": "2024-12-15",
+        "version": "1.0.0",
+        "data_sources": ["Our World in Data COVID-19", "WHO Health Statistics"]
+    }
+
 async def check_and_create_tables():
     """
     Vérifie si les tables existent et les crée si nécessaire

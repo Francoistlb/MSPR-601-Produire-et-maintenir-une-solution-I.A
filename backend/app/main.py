@@ -27,5 +27,14 @@ async def accueil():
         "aide": "Utilisez la documentation interactive pour explorer les endpoints disponibles."
     }
 
+# Healthcheck endpoint
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "message": "API is running",
+        "version": "1.0.0"
+    }
+
 # Inclusion des routes de l'API
 app.include_router(api_router, prefix="/api")
