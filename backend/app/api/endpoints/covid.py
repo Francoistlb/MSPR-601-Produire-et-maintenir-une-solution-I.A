@@ -8,13 +8,13 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-from backend.app.core.database import get_db
-from backend.app.crud.covid import (
+from app.core.database import get_db
+from app.crud.covid import (
     creer_donnees_covid, obtenir_donnees_covid_par_id, liste_donnees_covid, 
     mettre_a_jour_donnees_covid, supprimer_donnees_covid
 )
-from backend.app.schemas.schemas import FCovidCreate, FCovidRead
-from backend.app.crud.location import obtenir_pays_par_id
+from app.schemas.schemas import FCovidCreate, FCovidRead
+from app.crud.location import obtenir_pays_par_id
 
 router = APIRouter()
 

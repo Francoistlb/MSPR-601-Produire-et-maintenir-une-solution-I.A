@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field, validator
+from pydantic import BaseModel, ConfigDict, Field, validator, EmailStr
 from typing import Optional, List
 from datetime import date, datetime
 from enum import Enum
@@ -108,3 +108,77 @@ class PredictionFilters(BaseModel):
         if v > 1000:
             raise ValueError("La limite maximale est de 1000 enregistrements")
         return v
+
+
+# ----------- Authentication Schemas -----------#
+class UserBase(BaseModel):
+    """Schéma de base pour les utilisateurs"""
+    username: str = Field(..., min_length=3, max_length=50, description="Nom d'utilisateur (3-50 caractères)")
+    email: EmailStr = Field(..., description="Adresse email valide")
+
+    @validator('username')
+    def validate_username(cls, v):
+        if not v.replace('_', '').replace('-', '').isalnum():
+            raise ValueError("Le nom d'utilisateur ne peut contenir que des lettres, chiffres, _ et -")
+        return v.lower()
+
+
+class UserCreate(UserBase):
+    """Schéma pour la création d'un utilisateur"""
+    password: str = Field(..., min_length=6, max_length=100, description="Mot de passe (6-100 caractères)")
+
+    @validator('password')
+    def validate_password(cls, v):
+        if not any(c.isdigit() for c in v):
+            raise ValueError("Le mot de passe doit contenir au moins un chiffre")
+        if not any(c.isalpha() for c in v):
+            raise ValueError("Le mot de passe doit contenir au moins une lettre")
+        return v
+
+
+class UserRead(UserBase):
+    """Schéma pour la lecture d'un utilisateur (sans mot de passe)"""
+    user_id: int
+    is_active: bool
+    is_admin: bool
+    created_at: datetime
+    last_login: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserUpdate(BaseModel):
+    """Schéma pour la mise à jour d'un utilisateur"""
+    email: Optional[EmailStr] = None
+    full_name: Optional[str] = Field(None, max_length=100)
+    is_active: Optional[bool] = None
+
+
+class LoginRequest(BaseModel):
+    """Schéma pour les données de connexion"""
+    email: EmailStr = Field(..., description="Adresse email")
+    password: str = Field(..., description="Mot de passe")
+
+
+class Token(BaseModel):
+    """Schéma pour le token JWT"""
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int = Field(..., description="Durée de validité du token en secondes")
+
+
+class TokenData(BaseModel):
+    """Schéma pour les données contenues dans le token"""
+    username: Optional[str] = None
+
+
+class AuthResponse(BaseModel):
+    """Schéma pour la réponse d'authentification réussie"""
+    user: UserRead
+    token: Token
+    message: str = "Connexion réussie"
+
+
+class MessageResponse(BaseModel):
+    """Schéma pour les réponses avec message"""
+    message: str
+    detail: Optional[str] = None

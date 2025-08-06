@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.app.api.api import api_router
+from app.api.api import api_router
 
 app = FastAPI(
     title="API COVID-19 & Mpox",

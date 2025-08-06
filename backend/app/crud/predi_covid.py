@@ -3,8 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from datetime import date
 
-from backend.app.models.models import FPrediCovid
-from backend.app.schemas.schemas import FPrediCovidCreate
+from app.models.models import FPrediCovid
+from app.schemas.schemas import FPrediCovidCreate
 
 async def liste_predictions_covid(
     db: AsyncSession,

@@ -2,8 +2,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
-from backend.app.models.models import DLocation
-from backend.app.schemas.schemas import DLocationCreate
+from app.models.models import DLocation
+from app.schemas.schemas import DLocationCreate
 
 async def creer_pays(
     db: AsyncSession,

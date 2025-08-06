@@ -4,16 +4,16 @@ from sqlalchemy import text, and_
 from typing import List, Optional
 from datetime import datetime, date
 
-from backend.app.core.database import get_db, engine
-from backend.app.crud import predi_covid as crud_predi_covid
-from backend.app.crud import location as crud_location
-from backend.app.schemas.schemas import (
+from app.core.database import get_db, engine
+from app.crud import predi_covid as crud_predi_covid
+from app.crud import location as crud_location
+from app.schemas.schemas import (
     FPrediCovidCreate,
     FPrediCovidRead,
     PredictionFilters,
     IndicateurType
 )
-from backend.app.models.models import FPrediCovid, Base
+from app.models.models import FPrediCovid, Base
 
 router = APIRouter()
 
@@ -54,7 +54,7 @@ async def get_countries_with_predictions(
     try:
         # Utiliser SQLAlchemy de manière asynchrone
         from sqlalchemy import select, distinct
-        from backend.app.models.models import DLocation, FPrediCovid
+        from app.models.models import DLocation, FPrediCovid
         
         query = select(distinct(DLocation.location_name))\
             .join(FPrediCovid, DLocation.location_id == FPrediCovid.location_id)\

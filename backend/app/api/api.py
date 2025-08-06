@@ -1,7 +1,14 @@
 from fastapi import APIRouter
-from backend.app.api.endpoints import locations, covid, mpox, predictions
+from app.api.endpoints import locations, covid, mpox, predictions, auth
 
 api_router = APIRouter()
+
+# Routes d'authentification
+api_router.include_router(
+    auth.router,
+    prefix="/auth",
+    tags=["Authentication"]
+)
 
 # Inclusion des différents routers pour chaque partie de l'API
 api_router.include_router(

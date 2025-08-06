@@ -1,7 +1,7 @@
 from sqlalchemy import (
-    Column, Integer, String, Date, DateTime, Numeric, ForeignKey, func
+    Column, Integer, String, Date, DateTime, Numeric, ForeignKey, func, Boolean
 )
-from backend.app.core.database import Base
+from app.core.database import Base
 
 class DLocation(Base):
     """Dimension géographique pour stocker les localisations uniques"""
@@ -73,5 +73,20 @@ class FPrediCovid(Base):
     indicateur = Column(String(50), nullable=False)  # "new_cases", "new_deaths", "countries_reporting"
     valeur_predite = Column(Numeric(15, 2), nullable=False)
     model_name = Column(String(100), nullable=False) # Nom du modèle utilisé pour la prédiction
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+class User(Base):
+    """Table des utilisateurs pour l'authentification"""
+    __tablename__ = 'users'
+    
+    user_id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String(50), nullable=False, unique=True)
+    email = Column(String(100), nullable=False, unique=True)
+    password_hash = Column(String(255), nullable=False)  # Hash bcrypt du mot de passe
+    is_active = Column(Boolean, default=True)
+    is_admin = Column(Boolean, default=False)
+    
+    # Métadonnées
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
