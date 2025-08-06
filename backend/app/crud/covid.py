@@ -3,9 +3,9 @@ from sqlalchemy.future import select
 from typing import List, Optional, Dict, Any
 from sqlalchemy import func, and_
 from datetime import date
-from backend.app.models.models import FCovid, DLocation
-from backend.app.schemas.schemas import FCovidCreate
-from backend.app.crud.location import obtenir_ou_creer_pays
+from app.models.models import FCovid, DLocation
+from app.schemas.schemas import FCovidCreate
+from app.crud.location import obtenir_ou_creer_pays
 
 
 async def creer_donnees_covid(db: AsyncSession, covid_data: FCovidCreate) -> FCovid:
