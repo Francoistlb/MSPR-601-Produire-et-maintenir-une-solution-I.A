@@ -1,5 +1,5 @@
-from backend.app.models.models import FPrediMpox
-from backend.app.schemas.schemas import FPrediMpoxCreate
+from app.models.models import FPrediMpox
+from app.schemas.schemas import FPrediMpoxCreate
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List, Optional
