@@ -1,82 +1,78 @@
+# backend/tests/conftest.py
 """
 Configuration des tests pour l'API COVID-19 & Mpox
 """
-import pytest
 import asyncio
 from typing import AsyncGenerator, Generator
-from httpx import AsyncClient
+
+import pytest
+import pytest_asyncio
+from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from fastapi.testclient import TestClient
 
 from app.main import app
 from app.core.database import get_db, Base
 from app.models.models import User, DLocation
 from app.core.security import get_password_hash
 
-# Base de données de test en mémoire
+# DB de test (sqlite async)
 TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
-# Créer le moteur de test
 test_engine = create_async_engine(
     TEST_DATABASE_URL,
     echo=False,
+    # connect_args peut être omis avec aiosqlite ; on le garde par sécurité
     connect_args={"check_same_thread": False}
 )
 
-# Session de test
 TestSessionLocal = sessionmaker(
     bind=test_engine,
     class_=AsyncSession,
     expire_on_commit=False
 )
 
-
+# 👉 Si tu utilises pytest-asyncio récent, tu peux supprimer complètement cette fixture event_loop.
 @pytest.fixture(scope="session")
 def event_loop() -> Generator:
-    """Créer une boucle d'événements pour les tests asynchrones"""
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
 
-
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def db_session() -> AsyncGenerator[AsyncSession, None]:
-    """Créer une session de base de données pour les tests"""
+    # Création du schéma pour chaque test
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    
+
     async with TestSessionLocal() as session:
         yield session
-    
+
+    # Cleanup du schéma après chaque test
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
-
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
-    """Client HTTP de test"""
-    def override_get_db():
-        return db_session
-    
+    # ⚠️ override get_db doit YIELD la session dans un générateur async
+    async def override_get_db():
+        try:
+            yield db_session
+        finally:
+            pass
+
     app.dependency_overrides[get_db] = override_get_db
-    
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+
+    # httpx >= 0.28 : passer par ASGITransport
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
-    
+
     app.dependency_overrides.clear()
 
 
-@pytest.fixture(scope="function")
-def sync_client() -> Generator[TestClient, None, None]:
-    """Client HTTP synchrone pour tests simples"""
-    with TestClient(app) as client:
-        yield client
-
-
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_user(db_session: AsyncSession) -> User:
-    """Créer un utilisateur de test"""
     user = User(
         username="testuser",
         email="test@example.com",
@@ -89,10 +85,8 @@ async def test_user(db_session: AsyncSession) -> User:
     await db_session.refresh(user)
     return user
 
-
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_admin_user(db_session: AsyncSession) -> User:
-    """Créer un utilisateur admin de test"""
     admin = User(
         username="adminuser",
         email="admin@example.com",
@@ -105,62 +99,35 @@ async def test_admin_user(db_session: AsyncSession) -> User:
     await db_session.refresh(admin)
     return admin
 
-
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_location(db_session: AsyncSession) -> DLocation:
-    """Créer une localisation de test"""
     location = DLocation(location_name="France")
     db_session.add(location)
     await db_session.commit()
     await db_session.refresh(location)
     return location
 
-
-@pytest.fixture
+@pytest_asyncio.fixture
 async def auth_headers(client: AsyncClient, test_user: User) -> dict:
-    """Générer les headers d'authentification pour les tests"""
-    login_data = {
-        "email": test_user.email,
-        "password": "testpassword123"
-    }
-    response = await client.post("/api/auth/login", json=login_data)
-    assert response.status_code == 200
-    token_data = response.json()
-    
-    return {
-        "Authorization": f"Bearer {token_data['access_token']}"
-    }
+    login_data = {"email": test_user.email, "password": "testpassword123"}
+    resp = await client.post("/api/auth/login", json=login_data)
+    assert resp.status_code == 200
+    token = resp.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
 
-
-@pytest.fixture
+@pytest_asyncio.fixture
 async def admin_auth_headers(client: AsyncClient, test_admin_user: User) -> dict:
-    """Générer les headers d'authentification admin pour les tests"""
-    login_data = {
-        "email": test_admin_user.email,
-        "password": "adminpassword123"
-    }
-    response = await client.post("/api/auth/login", json=login_data)
-    assert response.status_code == 200
-    token_data = response.json()
-    
-    return {
-        "Authorization": f"Bearer {token_data['access_token']}"
-    }
+    login_data = {"email": test_admin_user.email, "password": "adminpassword123"}
+    resp = await client.post("/api/auth/login", json=login_data)
+    assert resp.status_code == 200
+    token = resp.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
 
-
-# Données de test réutilisables
+# Données réutilisables (inchangé)
 TEST_USER_DATA = {
     "username": "newuser",
     "email": "newuser@example.com",
     "password": "newpassword123"
 }
-
-TEST_LOGIN_DATA = {
-    "email": "test@example.com",
-    "password": "testpassword123"
-}
-
-TEST_INVALID_LOGIN_DATA = {
-    "email": "test@example.com",
-    "password": "wrongpassword"
-}
+TEST_LOGIN_DATA = {"email": "test@example.com", "password": "testpassword123"}
+TEST_INVALID_LOGIN_DATA = {"email": "test@example.com", "password": "wrongpassword"}
