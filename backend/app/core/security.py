@@ -14,6 +14,9 @@ SECRET_KEY = "votre-clé-secrète-très-longue-et-complexe-changez-en-production
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
+# Blacklist des tokens révoqués (en mémoire pour simplicité)
+blacklisted_tokens = set()
+
 # Contexte de hachage des mots de passe
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -47,6 +50,14 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 def verify_token(token: str, credentials_exception: HTTPException):
     """Vérifie et décode un token JWT"""
+    # Vérifier si le token est dans la blacklist
+    if token in blacklisted_tokens:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
@@ -55,6 +66,11 @@ def verify_token(token: str, credentials_exception: HTTPException):
         return email
     except JWTError:
         raise credentials_exception
+
+
+def revoke_token(token: str):
+    """Ajoute un token à la blacklist pour le révoquer"""
+    blacklisted_tokens.add(token)
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):

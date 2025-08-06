@@ -2,8 +2,8 @@ import sys
 sys.stdout.reconfigure(encoding='utf-8')
 
 import asyncio
-from backend.app.core.database import Base, engine
-from backend.app.models import models 
+from app.core.database import Base, engine
+from app.models import models 
 
 async def init_db():
     async with engine.begin() as conn:

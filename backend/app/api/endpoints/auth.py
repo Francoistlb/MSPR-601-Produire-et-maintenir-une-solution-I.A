@@ -2,14 +2,15 @@
 Endpoints d'authentification
 """
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.security import (
     create_access_token, 
     get_current_active_user,
-    ACCESS_TOKEN_EXPIRE_MINUTES
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    revoke_token
 )
 from app.crud.user import authenticate_user, create_user
 from app.schemas.schemas import Token, UserCreate, UserRead, LoginRequest, MessageResponse
@@ -86,6 +87,31 @@ async def test_protected_route(current_user = Depends(get_current_active_user)):
     return MessageResponse(
         message=f"Hello {current_user.username}! This is a protected route.",
         detail=f"User ID: {current_user.user_id}, Admin: {current_user.is_admin}"
+    )
+
+
+@router.post("/logout", response_model=MessageResponse)
+async def logout_user(request: Request, current_user = Depends(get_current_active_user)):
+    """
+    Déconnexion de l'utilisateur
+    Révoque le token JWT côté serveur
+    """
+    # Extraire le token de l'header Authorization
+    authorization = request.headers.get("Authorization")
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token manquant",
+        )
+    
+    token = authorization.replace("Bearer ", "")
+    
+    # Révoquer le token
+    revoke_token(token)
+    
+    return MessageResponse(
+        message=f"Déconnexion réussie pour {current_user.username}",
+        detail="Token révoqué côté serveur. Vous êtes maintenant déconnecté."
     )
 
 
