@@ -1,7 +1,14 @@
+# backend/tests/conftest.py
 """
 Configuration des tests pour l'API COVID-19 & Mpox
 """
+
+# 1) === Variables d'environnement de test (AVANT TOUT IMPORT DE L'APP) ===
 import os
+os.environ["ENV"] = "test"
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test.db"
+
+# 2) === Imports standard ===
 import asyncio
 from typing import AsyncGenerator, Generator
 
@@ -11,23 +18,15 @@ from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
+# 3) === Imports de l'app (après les env) ===
 from app.main import app
 from app.core.database import get_db, Base
 from app.models.models import User, DLocation
 from app.core.security import get_password_hash
 
-# =====================================
-# Variables d'environnement de test
-# =====================================
-os.environ["ENV"] = "test"
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test.db"
-
-# URL BDD de test
+# 4) === Moteur / session SQLAlchemy pour les tests ===
 TEST_DATABASE_URL = os.environ["DATABASE_URL"]
 
-# =====================================
-# Moteur et session SQLAlchemy pour tests
-# =====================================
 test_engine = create_async_engine(
     TEST_DATABASE_URL,
     echo=False,
@@ -40,39 +39,32 @@ TestSessionLocal = sessionmaker(
     expire_on_commit=False
 )
 
-# =====================================
-# Fixtures Pytest
-# =====================================
+# 5) === Fixtures ===
 
 @pytest.fixture(scope="session")
 def event_loop() -> Generator:
-    """Boucle d'événements pour les tests async"""
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
 
-
 @pytest_asyncio.fixture(scope="function")
 async def db_session() -> AsyncGenerator[AsyncSession, None]:
-    """Session BDD pour chaque test avec création/suppression du schéma"""
+    # Crée le schéma avant chaque test
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
     async with TestSessionLocal() as session:
         yield session
 
+    # Drop le schéma après chaque test
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
-
 @pytest_asyncio.fixture(scope="function")
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
-    """Client HTTP asynchrone pour tester l'API"""
+    # Override FastAPI pour injecter la session SQLite de test
     async def override_get_db():
-        try:
-            yield db_session
-        finally:
-            pass
+        yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
 
@@ -82,10 +74,7 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 
     app.dependency_overrides.clear()
 
-
-# =====================================
-# Données de test
-# =====================================
+# --- Données de test réutilisables ---
 
 @pytest_asyncio.fixture
 async def test_user(db_session: AsyncSession) -> User:
@@ -101,7 +90,6 @@ async def test_user(db_session: AsyncSession) -> User:
     await db_session.refresh(user)
     return user
 
-
 @pytest_asyncio.fixture
 async def test_admin_user(db_session: AsyncSession) -> User:
     admin = User(
@@ -116,7 +104,6 @@ async def test_admin_user(db_session: AsyncSession) -> User:
     await db_session.refresh(admin)
     return admin
 
-
 @pytest_asyncio.fixture
 async def test_location(db_session: AsyncSession) -> DLocation:
     location = DLocation(location_name="France")
@@ -125,26 +112,20 @@ async def test_location(db_session: AsyncSession) -> DLocation:
     await db_session.refresh(location)
     return location
 
-
 @pytest_asyncio.fixture
 async def auth_headers(client: AsyncClient, test_user: User) -> dict:
-    login_data = {"email": test_user.email, "password": "testpassword123"}
-    resp = await client.post("/api/auth/login", json=login_data)
+    resp = await client.post("/api/auth/login", json={"email": test_user.email, "password": "testpassword123"})
     assert resp.status_code == 200
     token = resp.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
-
 
 @pytest_asyncio.fixture
 async def admin_auth_headers(client: AsyncClient, test_admin_user: User) -> dict:
-    login_data = {"email": test_admin_user.email, "password": "adminpassword123"}
-    resp = await client.post("/api/auth/login", json=login_data)
+    resp = await client.post("/api/auth/login", json={"email": test_admin_user.email, "password": "adminpassword123"})
     assert resp.status_code == 200
     token = resp.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
 
-
-# Données réutilisables
 TEST_USER_DATA = {
     "username": "newuser",
     "email": "newuser@example.com",
