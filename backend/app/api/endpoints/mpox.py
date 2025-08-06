@@ -3,13 +3,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from datetime import date
 
-from backend.app.core.database import get_db
-from backend.app.crud.mpox import (
+from app.core.database import get_db
+from app.crud.mpox import (
     creer_donnees_mpox, obtenir_donnees_mpox_par_id, liste_donnees_mpox,
     mettre_a_jour_donnees_mpox, supprimer_donnees_mpox
 )
-from backend.app.schemas.schemas import FMpoxCreate, FMpoxRead
-from backend.app.crud.location import obtenir_pays_par_id
+from app.schemas.schemas import FMpoxCreate, FMpoxRead
+from app.crud.location import obtenir_pays_par_id
 
 router = APIRouter()
 

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.app.api.api import api_router
+from app.api.api import api_router
 
 app = FastAPI(
     title="API COVID-19 & Mpox",
@@ -25,6 +25,15 @@ async def accueil():
         "documentation": "/docs",
         "sources_de_donnees": ["COVID-19: Our World in Data", "Mpox: Kaggle Dataset"],
         "aide": "Utilisez la documentation interactive pour explorer les endpoints disponibles."
+    }
+
+# Healthcheck endpoint
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "message": "API is running",
+        "version": "1.0.0"
     }
 
 # Inclusion des routes de l'API

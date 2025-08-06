@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
-from backend.app.core.database import get_db
-from backend.app.crud.location import (
+from app.core.database import get_db
+from app.crud.location import (
     creer_pays, obtenir_pays_par_id, liste_pays, obtenir_pays_par_nom, supprimer_pays
 )
-from backend.app.schemas.schemas import DLocationCreate, DLocationRead
+from app.schemas.schemas import DLocationCreate, DLocationRead
 
 router = APIRouter()
 

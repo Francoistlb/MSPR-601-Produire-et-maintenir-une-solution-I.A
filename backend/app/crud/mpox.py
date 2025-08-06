@@ -3,8 +3,8 @@ from sqlalchemy.future import select
 from typing import List, Optional
 from sqlalchemy import and_
 from datetime import date
-from backend.app.models.models import FMpox
-from backend.app.schemas.schemas import FMpoxCreate
+from app.models.models import FMpox
+from app.schemas.schemas import FMpoxCreate
 
 async def creer_donnees_mpox(db: AsyncSession, mpox_data: FMpoxCreate) -> FMpox:
     db_mpox = FMpox(
