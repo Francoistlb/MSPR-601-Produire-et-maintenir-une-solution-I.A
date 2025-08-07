@@ -23,6 +23,8 @@ services:
       - .env.docker
     environment:
       - TZ=UTC
+    volumes:
+      - ./backend:/app 
     networks:
       - default
     healthcheck:
