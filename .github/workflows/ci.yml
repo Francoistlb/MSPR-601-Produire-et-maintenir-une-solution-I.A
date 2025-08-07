@@ -53,6 +53,46 @@ jobs:
         run: |
           pytest --maxfail=1 --disable-warnings -q
 
+
+      - name: Discord notification
+        if: always()
+        env:
+          DISCORD_WEBHOOK: ${{ fromJson(secrets.ENV_MSPR).DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            curl -H "Content-Type: application/json" \
+                 -X POST \
+                 -d '{
+                   "embeds": [{
+                     "title": "✅ Build Success",
+                     "description": "Tests passed successfully! 🎉",
+                     "color": 3066993,
+                     "fields": [
+                       {"name": "Branch", "value": "${{ github.ref_name }}", "inline": true},
+                       {"name": "Commit", "value": "`${{ github.sha }}`", "inline": true},
+                       {"name": "Author", "value": "${{ github.actor }}", "inline": true}
+                     ]
+                   }]
+                 }' \
+                 $DISCORD_WEBHOOK
+          else
+            curl -H "Content-Type: application/json" \
+                 -X POST \
+                 -d '{
+                   "embeds": [{
+                     "title": "❌ Build Failed",
+                     "description": "Tests failed! 💥",
+                     "color": 15158332,
+                     "fields": [
+                       {"name": "Branch", "value": "${{ github.ref_name }}", "inline": true},
+                       {"name": "Commit", "value": "`${{ github.sha }}`", "inline": true},
+                       {"name": "Author", "value": "${{ github.actor }}", "inline": true}
+                     ]
+                   }]
+                 }' \
+                 $DISCORD_WEBHOOK
+          fi
+
       # ---------- NODE / Tests Cypress ----------
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -98,3 +138,4 @@ jobs:
           path: |
             frontend/cypress/videos
             frontend/cypress/screenshots
+

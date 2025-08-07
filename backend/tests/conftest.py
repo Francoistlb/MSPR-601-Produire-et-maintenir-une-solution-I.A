@@ -30,6 +30,7 @@ TEST_DATABASE_URL = os.environ["DATABASE_URL"]
 test_engine = create_async_engine(
     TEST_DATABASE_URL,
     echo=False,
+    # connect_args peut être omis avec aiosqlite ; on le garde par sécurité
     connect_args={"check_same_thread": False}
 )
 
