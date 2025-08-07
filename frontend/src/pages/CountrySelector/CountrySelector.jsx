@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context';
 import { 
   Container, 
@@ -15,6 +16,7 @@ import '../Auth/auth.css';
 
 const CountrySelector = () => {
   const { selectCountry, logout, user } = useAuth();
+  const navigate = useNavigate();
 
   const countries = [
     {
@@ -39,6 +41,8 @@ const CountrySelector = () => {
 
   const handleCountrySelect = (countryCode) => {
     selectCountry(countryCode);
+    // Rediriger vers la page principale après sélection
+    navigate('/navigation');
   };
 
   return (

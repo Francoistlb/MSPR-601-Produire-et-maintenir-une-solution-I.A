@@ -19,7 +19,7 @@ function ProtectedRoutes() {
   const location = useLocation();
   
   // Pages qui n'ont pas de header/footer
-  const authPages = ['/', '/login', '/country-selector'];
+  const authPages = ['/', '/login', '/country-selector', '/navigation'];
   const isAuthPage = authPages.includes(location.pathname);
 
   if (loading) {
