@@ -20,9 +20,9 @@ const Navigation = () => {
       <header className="home-header">
         <h1 className="home-title">Analyze IT 2 - Tableau de bord</h1>
         {selectedCountry && (
-          <p style={{ color: '#666', marginTop: '0.5rem' }}>
+          <div className="selected-region">
             Région : {getCountryName(selectedCountry)}
-          </p>
+          </div>
         )}
       </header>
       <main className="home-container">

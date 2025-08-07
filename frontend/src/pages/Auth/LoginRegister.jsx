@@ -12,6 +12,7 @@ import {
   Tabs
 } from '@mui/material';
 import { FaUser, FaLock, FaAt } from 'react-icons/fa';
+import './auth.css';
 
 const LoginRegister = () => {
   const [activeTab, setActiveTab] = useState(0);

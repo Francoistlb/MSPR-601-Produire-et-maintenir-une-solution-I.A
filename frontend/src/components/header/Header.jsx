@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AccessibilityContext } from '../../context';
 import { useAuth } from '../../context';
 import './Header.css';
@@ -7,6 +7,7 @@ import './Header.css';
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { darkMode } = useContext(AccessibilityContext);
   const { logout, user, selectedCountry } = useAuth();
 
@@ -19,6 +20,10 @@ const Header = () => {
       'US': 'États-Unis'
     };
     return countries[code] || 'Région';
+  };
+
+  const handleCountryClick = () => {
+    navigate('/country-selector');
   };
 
   return (
@@ -81,26 +86,21 @@ const Header = () => {
         </nav>
 
         <div className="header-user-info">
+          <span className="user-name">
+            {user?.username || user?.email}
+          </span>
           {selectedCountry && (
-            <span className="user-country" style={{ marginRight: '1rem', color: darkMode ? '#fff' : '#666' }}>
-              {getCountryName(selectedCountry)}
+            <span 
+              className="user-country clickable" 
+              onClick={handleCountryClick}
+              title="Cliquer pour changer de région"
+            >
+              Région : {getCountryName(selectedCountry)}
             </span>
           )}
-          <span className="user-email" style={{ marginRight: '1rem', color: darkMode ? '#fff' : '#666' }}>
-            {user?.email}
-          </span>
           <button 
             onClick={logout}
             className="logout-btn"
-            style={{
-              background: 'none',
-              border: '1px solid currentColor',
-              color: darkMode ? '#fff' : '#666',
-              padding: '0.5rem 1rem',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '0.9rem'
-            }}
           >
             Déconnexion
           </button>
