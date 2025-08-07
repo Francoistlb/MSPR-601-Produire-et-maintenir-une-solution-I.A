@@ -12,7 +12,7 @@ load_dotenv()
 def get_sync_db():
     DATABASE_URL = os.getenv("DATABASE_URL")
     if not DATABASE_URL:
-        raise ValueError("DATABASE_URL n'est pas défini dans le fichier .env")
+        raise ValueError("DATABASE_URL n'est pas défini dans le fichier .env.docker")
     
     SYNC_DATABASE_URL = DATABASE_URL.replace('postgresql+asyncpg', 'postgresql+psycopg2')
     engine = create_engine(SYNC_DATABASE_URL)

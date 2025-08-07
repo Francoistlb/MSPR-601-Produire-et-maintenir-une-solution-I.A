@@ -2,6 +2,13 @@
 """
 Configuration des tests pour l'API COVID-19 & Mpox
 """
+
+# 1) === Variables d'environnement de test (AVANT TOUT IMPORT DE L'APP) ===
+import os
+os.environ["ENV"] = "test"
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test.db"
+
+# 2) === Imports standard ===
 import asyncio
 from typing import AsyncGenerator, Generator
 
@@ -11,13 +18,14 @@ from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
+# 3) === Imports de l'app (après les env) ===
 from app.main import app
 from app.core.database import get_db, Base
 from app.models.models import User, DLocation
 from app.core.security import get_password_hash
 
-# DB de test (sqlite async)
-TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
+# 4) === Moteur / session SQLAlchemy pour les tests ===
+TEST_DATABASE_URL = os.environ["DATABASE_URL"]
 
 test_engine = create_async_engine(
     TEST_DATABASE_URL,
@@ -32,7 +40,8 @@ TestSessionLocal = sessionmaker(
     expire_on_commit=False
 )
 
-# 👉 Si tu utilises pytest-asyncio récent, tu peux supprimer complètement cette fixture event_loop.
+# 5) === Fixtures ===
+
 @pytest.fixture(scope="session")
 def event_loop() -> Generator:
     loop = asyncio.get_event_loop_policy().new_event_loop()
@@ -41,35 +50,32 @@ def event_loop() -> Generator:
 
 @pytest_asyncio.fixture(scope="function")
 async def db_session() -> AsyncGenerator[AsyncSession, None]:
-    # Création du schéma pour chaque test
+    # Crée le schéma avant chaque test
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
     async with TestSessionLocal() as session:
         yield session
 
-    # Cleanup du schéma après chaque test
+    # Drop le schéma après chaque test
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
 @pytest_asyncio.fixture(scope="function")
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
-    # ⚠️ override get_db doit YIELD la session dans un générateur async
+    # Override FastAPI pour injecter la session SQLite de test
     async def override_get_db():
-        try:
-            yield db_session
-        finally:
-            pass
+        yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
 
-    # httpx >= 0.28 : passer par ASGITransport
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
 
     app.dependency_overrides.clear()
 
+# --- Données de test réutilisables ---
 
 @pytest_asyncio.fixture
 async def test_user(db_session: AsyncSession) -> User:
@@ -109,21 +115,18 @@ async def test_location(db_session: AsyncSession) -> DLocation:
 
 @pytest_asyncio.fixture
 async def auth_headers(client: AsyncClient, test_user: User) -> dict:
-    login_data = {"email": test_user.email, "password": "testpassword123"}
-    resp = await client.post("/api/auth/login", json=login_data)
+    resp = await client.post("/api/auth/login", json={"email": test_user.email, "password": "testpassword123"})
     assert resp.status_code == 200
     token = resp.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
 
 @pytest_asyncio.fixture
 async def admin_auth_headers(client: AsyncClient, test_admin_user: User) -> dict:
-    login_data = {"email": test_admin_user.email, "password": "adminpassword123"}
-    resp = await client.post("/api/auth/login", json=login_data)
+    resp = await client.post("/api/auth/login", json={"email": test_admin_user.email, "password": "adminpassword123"})
     assert resp.status_code == 200
     token = resp.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
 
-# Données réutilisables (inchangé)
 TEST_USER_DATA = {
     "username": "newuser",
     "email": "newuser@example.com",

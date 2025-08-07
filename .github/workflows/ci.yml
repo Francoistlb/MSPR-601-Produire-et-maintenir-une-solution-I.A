@@ -45,7 +45,7 @@ jobs:
 
       - name: Run tests
         env:
-          DATABASE_URL: ${{ fromJson(secrets.ENV_MSPR).DATABASE_URL }}
+          DATABASE_URL: sqlite+aiosqlite:///./test.db
           COVID_DATA_URL: ${{ fromJson(secrets.ENV_MSPR).COVID_DATA_URL }}
           MPOX_KAGGLE_DATASET: ${{ fromJson(secrets.ENV_MSPR).MPOX_KAGGLE_DATASET }}
         run: |
