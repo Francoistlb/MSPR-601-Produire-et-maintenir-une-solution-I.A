@@ -105,9 +105,11 @@ const Predictions = () => {
         setLoading(true);
         const raw = await fetchPredictions(2025);
 
-        // ---- 1. Remap : fusionner les 3 indicateurs par (pays + date) ------
+        // ---- 1. Remap : fusionner les 3 indicateurs par (pays + date)
         const dataByCountry = {};
-        Object.entries(raw).forEach(([country, rows]) => {
+        selectedCountries.forEach((country) => {
+          const rows = raw[country];
+          if (!rows) return; 
           const byDate = {};
           rows.forEach((r) => {
             const d = r.date || r.date_predite;
@@ -186,10 +188,13 @@ const Predictions = () => {
         Object.keys(CONTINENTS).forEach((cont) => {
           spreadByContinent[cont] = { total: 0, countries: [] };
         });
+        spreadByContinent['Autre'] = { total: 0, countries: [] }; // Ajout pour les pays hors liste
 
         selectedCountries.forEach((c) => {
           const cont = getContinent(c);
-          const max = Math.max(...monthlySpread[c]);
+          const spreadArr = monthlySpread[c];
+          if (!spreadArr) return;
+          const max = Math.max(...spreadArr);
           if (max > 0) {
             spreadByContinent[cont].total += max;
             spreadByContinent[cont].countries.push(c);
