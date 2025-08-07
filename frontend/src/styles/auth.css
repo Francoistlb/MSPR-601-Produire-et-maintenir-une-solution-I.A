@@ -1,0 +1,46 @@
+/* Styles pour les pages d'authentification */
+.auth-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.country-selector {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rem 0;
+}
+
+.country-card {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.country-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+}
+
+/* Responsive pour le header avec les infos utilisateur */
+@media (max-width: 768px) {
+  .header-user-info {
+    display: none;
+  }
+  
+  .header-nav.mobile-open .header-user-info {
+    display: flex;
+    flex-direction: column;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255,255,255,0.2);
+  }
+  
+  .header-user-info .user-email,
+  .header-user-info .user-country {
+    margin-bottom: 0.5rem;
+    margin-right: 0 !important;
+  }
+}

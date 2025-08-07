@@ -3,6 +3,178 @@ import { format } from 'date-fns';
 // Configuration de l'API
 const API_BASE_URL = '/api';
 
+// Fonction utilitaire pour gérer les headers avec token
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    ...(token && { 'Authorization': `Bearer ${token}` })
+  };
+};
+
+// =================== AUTHENTICATION API ===================
+
+/**
+ * Connexion utilisateur
+ * @param {string} email - Email de l'utilisateur
+ * @param {string} password - Mot de passe
+ * @returns {Promise<Object>} Données de connexion avec token
+ */
+export const loginUser = async (email, password) => {
+  try {
+    const url = `${API_BASE_URL}/auth/login`;
+    console.log('🔐 Login attempt for:', email);
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('🔐 Login error:', errorData);
+      throw new Error(errorData.detail || `Erreur HTTP: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('🔐 Login successful:', { ...data, access_token: '[HIDDEN]' });
+    return data;
+  } catch (error) {
+    console.error('🔐 Erreur lors de la connexion:', error);
+    throw error;
+  }
+};
+
+/**
+ * Inscription utilisateur
+ * @param {string} username - Nom d'utilisateur
+ * @param {string} email - Email de l'utilisateur
+ * @param {string} password - Mot de passe
+ * @returns {Promise<Object>} Données de l'utilisateur créé
+ */
+export const registerUser = async (username, email, password) => {
+  try {
+    const url = `${API_BASE_URL}/auth/register`;
+    console.log('📝 Register attempt for:', email);
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ username, email, password })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('📝 Register error:', errorData);
+      throw new Error(errorData.detail || `Erreur HTTP: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('📝 Register successful:', data);
+    return data;
+  } catch (error) {
+    console.error('📝 Erreur lors de l\'inscription:', error);
+    throw error;
+  }
+};
+
+/**
+ * Récupère les informations de l'utilisateur connecté
+ * @returns {Promise<Object>} Données de l'utilisateur
+ */
+export const getCurrentUser = async () => {
+  try {
+    const url = `${API_BASE_URL}/auth/me`;
+    console.log('👤 Fetching current user');
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('👤 Get user error:', errorData);
+      throw new Error(errorData.detail || `Erreur HTTP: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('👤 User data fetched:', data);
+    return data;
+  } catch (error) {
+    console.error('👤 Erreur lors de la récupération de l\'utilisateur:', error);
+    throw error;
+  }
+};
+
+/**
+ * Déconnexion utilisateur
+ * @returns {Promise<Object>} Message de confirmation
+ */
+export const logoutUser = async () => {
+  try {
+    const url = `${API_BASE_URL}/auth/logout`;
+    console.log('🚪 Logout attempt');
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('🚪 Logout error:', errorData);
+      throw new Error(errorData.detail || `Erreur HTTP: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('🚪 Logout successful:', data);
+    return data;
+  } catch (error) {
+    console.error('🚪 Erreur lors de la déconnexion:', error);
+    throw error;
+  }
+};
+
+/**
+ * Test de route protégée
+ * @returns {Promise<Object>} Message de test
+ */
+export const testProtectedRoute = async () => {
+  try {
+    const url = `${API_BASE_URL}/auth/test-protected`;
+    console.log('🧪 Testing protected route');
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('🧪 Protected route error:', errorData);
+      throw new Error(errorData.detail || `Erreur HTTP: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('🧪 Protected route test successful:', data);
+    return data;
+  } catch (error) {
+    console.error('🧪 Erreur lors du test de route protégée:', error);
+    throw error;
+  }
+};
+
+// =================== DATA API ===================
+
 export const fetchCountries = async () => {
   try {
     const url = `${API_BASE_URL}/predictions/countries`;
@@ -10,9 +182,7 @@ export const fetchCountries = async () => {
     
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Accept': 'application/json'
-      }
+      headers: getAuthHeaders()
     });
 
     if (!response.ok) {
@@ -58,7 +228,9 @@ export const fetchMultiCountryPredictions = async (params) => {
 
       console.log('Fetching URL:', url.toString()); 
 
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: getAuthHeaders()
+      });
       
       if (!response.ok) {
         throw new Error(`Erreur HTTP: ${response.status}`);
