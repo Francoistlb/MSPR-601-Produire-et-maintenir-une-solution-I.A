@@ -41,8 +41,8 @@ function ProtectedRoutes() {
     return <LoginRegister />;
   }
 
-  // Si connecté mais pas de pays sélectionné, afficher le sélecteur de pays
-  if (!hasSelectedCountry) {
+  // Si connecté mais pas de pays sélectionné ET pas sur la page country-selector
+  if (!hasSelectedCountry && location.pathname !== '/country-selector') {
     return <CountrySelector />;
   }
 
@@ -66,6 +66,7 @@ function ProtectedRoutes() {
           <Route path="/comparaisons" element={<Comparaisons />} />
           <Route path="/accessibilite" element={<Accessibility />} />
           <Route path="/aide" element={<Help />} />
+          <Route path="/country-selector" element={<CountrySelector />} />
         </Routes>
       </main>
       {!isAuthPage && <BackToTop />}

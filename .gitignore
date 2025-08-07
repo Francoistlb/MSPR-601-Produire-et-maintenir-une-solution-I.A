@@ -176,6 +176,9 @@ cypress/downloads/
 cypress.env.json
 cypress/results/
 cypress/reports/
+
+# Test reports
+backend/tests/reports/
 .cypress/
 mochawesome-report/
 

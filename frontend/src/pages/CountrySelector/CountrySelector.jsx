@@ -11,6 +11,7 @@ import {
   Button
 } from '@mui/material';
 import { FaFlag, FaSignOutAlt } from 'react-icons/fa';
+import '../Auth/auth.css';
 
 const CountrySelector = () => {
   const { selectCountry, logout, user } = useAuth();
@@ -49,7 +50,7 @@ const CountrySelector = () => {
       <Container maxWidth="lg">
         <Box textAlign="center" mb={4}>
           <Typography variant="h3" component="h1" gutterBottom sx={{ color: 'white', fontWeight: 'bold' }}>
-            Bienvenue, {user?.email}
+            Bienvenue, {user?.username || user?.email}
           </Typography>
           <Typography variant="h5" sx={{ color: 'rgba(255,255,255,0.9)', mb: 2 }}>
             Choisissez votre région d'analyse
