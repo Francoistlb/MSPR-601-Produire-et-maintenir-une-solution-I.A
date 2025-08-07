@@ -213,7 +213,7 @@ export const fetchMultiCountryPredictions = async (params) => {
     // Créer un tableau de promesses pour chaque pays
     const promises = params.pays.map(async (pays) => {
       // Construction de l'URL avec les paramètres
-      const url = new URL(`${API_BASE_URL}/predictions/`, window.location.origin);
+      const url = new URL(`${API_BASE_URL}/predictions/`);
       
       // Ajout des paramètres
       url.searchParams.append('indicateur', params.indicateur || 'new_cases');
@@ -311,7 +311,7 @@ export const fetchLocations = async () => {
   try {
     const url = `${API_BASE_URL}/pays?limit=1000`; // Augmentation de la limite à 1000 pays
     console.log('🌍 Fetching countries from:', url);
-    console.log('🌍 Full URL:', window.location.origin + url);
+    console.log('🌍 Full URL:' + url);
     
     const response = await fetch(url, {
       method: 'GET',
@@ -354,7 +354,7 @@ export const fetchCovidData = async (filters = {}) => {
 
     // Créer une promesse pour chaque pays
     const promises = filters.countries.map(async (country) => {
-      const url = new URL(`${API_BASE_URL}/covid/`, window.location.origin);
+      const url = new URL(`${API_BASE_URL}/covid/`);
       
       url.searchParams.append('location_id', country.location_id);
       
