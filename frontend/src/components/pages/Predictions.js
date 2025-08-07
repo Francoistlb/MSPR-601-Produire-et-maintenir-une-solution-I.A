@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Container, 
-  Paper, 
-  Typography, 
-  Alert, 
+import {
+  Container,
+  Paper,
+  Typography,
+  Alert,
   Box,
   Autocomplete,
   TextField,
@@ -22,8 +22,6 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
-import { format, parseISO } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import { fetchCountries, fetchPredictions } from '../../services/api';
 
 ChartJS.register(
@@ -37,40 +35,37 @@ ChartJS.register(
   Legend
 );
 
-// Couleurs pour les pays
+// ------------------------------ CONSTANTES UI ------------------------------
 const COUNTRY_COLORS = {
-  'Afghanistan': 'rgb(255, 99, 132)',   // Rouge
-  'Albania': 'rgb(54, 162, 235)',       // Bleu
-  'Algeria': 'rgb(255, 206, 86)',       // Jaune
-  'Andorra': 'rgb(75, 192, 192)',       // Vert turquoise
-  'Angola': 'rgb(153, 102, 255)',       // Violet
-  'Argentina': 'rgb(255, 159, 64)',     // Orange
-  'Australia': 'rgb(199, 199, 199)',    // Gris
-  'Austria': 'rgb(83, 102, 255)',       // Bleu foncé
-  'Brazil': 'rgb(255, 99, 132)',        // Rouge
-  'China': 'rgb(255, 159, 64)',         // Orange
-  'France': 'rgb(75, 192, 192)',        // Vert
-  'Germany': 'rgb(153, 102, 255)',      // Violet
-  'United States': 'rgb(255, 99, 132)'  // Rouge
+  Afghanistan: 'rgb(255, 99, 132)',
+  Albania: 'rgb(54, 162, 235)',
+  Algeria: 'rgb(255, 206, 86)',
+  Andorra: 'rgb(75, 192, 192)',
+  Angola: 'rgb(153, 102, 255)',
+  Argentina: 'rgb(255, 159, 64)',
+  Australia: 'rgb(199, 199, 199)',
+  Austria: 'rgb(83, 102, 255)',
+  Brazil: 'rgb(255, 99, 132)',
+  China: 'rgb(255, 159, 64)',
+  France: 'rgb(75, 192, 192)',
+  Germany: 'rgb(153, 102, 255)',
+  'United States': 'rgb(255, 99, 132)'
 };
 
-// Mapping des pays par continent
 const CONTINENTS = {
-  'Europe': ['France', 'Germany', 'Italy', 'Spain', 'United Kingdom', 'Switzerland', 'Belgium', 'Netherlands'],
-  'Asie': ['China', 'Japan', 'South Korea', 'India', 'Vietnam', 'Thailand', 'Indonesia'],
-  'Amérique': ['United States', 'Canada', 'Brazil', 'Mexico', 'Argentina', 'Chile'],
-  'Afrique': ['South Africa', 'Egypt', 'Morocco', 'Nigeria', 'Kenya', 'Ethiopia'],
-  'Océanie': ['Australia', 'New Zealand', 'Fiji', 'Papua New Guinea']
+  Europe: ['France', 'Germany', 'Italy', 'Spain', 'United Kingdom', 'Switzerland', 'Belgium', 'Netherlands'],
+  Asie: ['China', 'Japan', 'South Korea', 'India', 'Vietnam', 'Thailand', 'Indonesia'],
+  Amérique: ['United States', 'Canada', 'Brazil', 'Mexico', 'Argentina', 'Chile'],
+  Afrique: ['South Africa', 'Egypt', 'Morocco', 'Nigeria', 'Kenya', 'Ethiopia'],
+  Océanie: ['Australia', 'New Zealand', 'Fiji', 'Papua New Guinea']
 };
 
-// Fonction utilitaire pour trouver le continent d'un pays
-const getContinent = (country) => {
-  return Object.entries(CONTINENTS).find(([continent, countries]) => 
-    countries.includes(country)
-  )?.[0] || 'Autre';
-};
+const getContinent = (country) =>
+  Object.entries(CONTINENTS).find(([_, list]) => list.includes(country))?.[0] || 'Autre';
 
+// ---------------------------------------------------------------------------
 const Predictions = () => {
+  // ------------------------------- STATES ----------------------------------
   const [availableCountries, setAvailableCountries] = useState([]);
   const [selectedCountries, setSelectedCountries] = useState([]);
   const [error, setError] = useState(null);
@@ -79,107 +74,95 @@ const Predictions = () => {
   const [deathsData, setDeathsData] = useState(null);
   const [spreadData, setSpreadData] = useState(null);
 
-  // Charger la liste des pays au montage du composant
+  // -------------------------- CHARGEMENT PAYS ------------------------------
   useEffect(() => {
-    const loadCountries = async () => {
+    (async () => {
       try {
         setLoading(true);
         setError(null);
-        console.log('Chargement des pays...');
-        
         const countries = await fetchCountries();
-        console.log('Pays reçus:', countries);
-        
         setAvailableCountries(countries);
         setSelectedCountries([]);
-      } catch (error) {
-        console.error('Erreur:', error);
-        setError(error.message);
+      } catch (e) {
+        setError(e.message);
       } finally {
         setLoading(false);
       }
-    };
-
-    loadCountries();
+    })();
   }, []);
 
-  // Charger les prédictions quand les pays sélectionnés changent
+  // ------------------------ CHARGEMENT PRÉDICTIONS -------------------------
   useEffect(() => {
-    const loadPredictions = async () => {
-      if (selectedCountries.length === 0) {
-        setCasesData(null);
-        setDeathsData(null);
-        setSpreadData(null);
-        return;
-      }
+    if (selectedCountries.length === 0) {
+      setCasesData(null);
+      setDeathsData(null);
+      setSpreadData(null);
+      return;
+    }
 
+    (async () => {
       try {
         setLoading(true);
-        const predictionsData = await fetchPredictions(2025);
-        console.log('Données brutes reçues:', predictionsData);
-        
-        // Initialiser les structures de données pour le calcul des moyennes
+        const raw = await fetchPredictions(2025);
+
+        // ---- 1. Remap : fusionner les 3 indicateurs par (pays + date) ------
+        const dataByCountry = {};
+        Object.entries(raw).forEach(([country, rows]) => {
+          const byDate = {};
+          rows.forEach((r) => {
+            const d = r.date || r.date_predite;
+            if (!byDate[d]) byDate[d] = { date: d };
+            if (r.indicateur === 'new_cases' || r.nouveaux_cas !== undefined)
+              byDate[d].nouveaux_cas = r.nouveaux_cas ?? r.valeur_predite ?? 0;
+            if (r.indicateur === 'new_deaths' || r.deces !== undefined)
+              byDate[d].deces = r.deces ?? r.valeur_predite ?? 0;
+            if (r.indicateur === 'countries_reporting' || r.countries_reporting_pred !== undefined)
+              byDate[d].countries_reporting_pred =
+                r.countries_reporting_pred ?? r.valeur_predite ?? 0;
+          });
+          dataByCountry[country] = Object.values(byDate);
+        });
+
+        // ---- 2. Structures mensuelles -------------------------------------
         const monthlyCases = {};
         const monthlyDeaths = {};
         const monthlySpread = {};
-        const monthCounts = {};
 
-        // Initialiser les structures pour chaque pays
-        selectedCountries.forEach(country => {
-          monthlyCases[country] = Array(12).fill(0);
-          monthlyDeaths[country] = Array(12).fill(0);
-          monthlySpread[country] = Array(12).fill(0);
-          monthCounts[country] = Array(12).fill(0);
+        selectedCountries.forEach((c) => {
+          monthlyCases[c] = Array(12).fill(0);
+          monthlyDeaths[c] = Array(12).fill(0);
+          monthlySpread[c] = Array(12).fill(0);
         });
 
-        // Pour chaque pays sélectionné, traiter ses prédictions
-        selectedCountries.forEach(country => {
-          if (predictionsData[country]) {
-            // Grouper les prédictions par mois
-            const monthlyData = {};
-            predictionsData[country].forEach(pred => {
-              const date = new Date(pred.date);
-              const month = date.getMonth();
-              
-              if (!monthlyData[month]) {
-                monthlyData[month] = {
-                  totalCases: 0,
-                  totalDeaths: 0,
-                  totalSpread: 0,
-                  count: 0
-                };
-              }
-              
-              monthlyData[month].totalCases += parseFloat(pred.nouveaux_cas || 0);
-              monthlyData[month].totalDeaths += parseFloat(pred.deces || 0);
-              monthlyData[month].totalSpread += parseFloat(pred.countries_reporting_pred || 0);
-              monthlyData[month].count++;
-            });
-
-            // Calculer les moyennes mensuelles
-            Object.entries(monthlyData).forEach(([month, data]) => {
-              const monthIndex = parseInt(month);
-              monthlyCases[country][monthIndex] = data.totalCases / data.count;
-              monthlyDeaths[country][monthIndex] = data.totalDeaths / data.count;
-              monthlySpread[country][monthIndex] = data.totalSpread / data.count;
-            });
-          }
+        selectedCountries.forEach((country) => {
+          const rows = dataByCountry[country] || [];
+          const temp = {};
+          rows.forEach((r) => {
+            const month = new Date(r.date).getMonth();
+            if (!temp[month])
+              temp[month] = { totalCases: 0, totalDeaths: 0, totalSpread: 0, count: 0 };
+            temp[month].totalCases += Number(r.nouveaux_cas || 0);
+            temp[month].totalDeaths += Number(r.deces || 0);
+            temp[month].totalSpread += Number(r.countries_reporting_pred || 0);
+            temp[month].count += 1;
+          });
+          Object.entries(temp).forEach(([m, d]) => {
+            monthlyCases[country][m] = d.totalCases / d.count;
+            monthlyDeaths[country][m] = d.totalDeaths / d.count;
+            monthlySpread[country][m] = d.totalSpread / d.count;
+          });
         });
 
-        // Afficher les moyennes pour debug
-        selectedCountries.forEach(country => {
-          console.log(`Moyennes mensuelles des cas pour ${country}:`, monthlyCases[country]);
-          console.log(`Moyennes mensuelles des décès pour ${country}:`, monthlyDeaths[country]);
-        });
+        // ---- 3. Préparation datasets Chart.js ------------------------------
+        const labels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+        const colorOf = (c) => COUNTRY_COLORS[c] || `#${Math.floor(Math.random() * 0xffffff).toString(16)}`;
 
-        const commonLabels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
-        
         setCasesData({
-          labels: commonLabels,
-          datasets: selectedCountries.map(country => ({
-            label: country,
-            data: monthlyCases[country],
-            borderColor: COUNTRY_COLORS[country] || '#' + Math.floor(Math.random()*16777215).toString(16),
+          labels,
+          datasets: selectedCountries.map((c) => ({
+            label: c,
+            data: monthlyCases[c],
+            borderColor: colorOf(c),
             backgroundColor: 'transparent',
             tension: 0.4,
             pointRadius: 2
@@ -187,248 +170,148 @@ const Predictions = () => {
         });
 
         setDeathsData({
-          labels: commonLabels,
-          datasets: selectedCountries.map(country => ({
-            label: country,
-            data: monthlyDeaths[country],
-            borderColor: COUNTRY_COLORS[country] || '#' + Math.floor(Math.random()*16777215).toString(16),
+          labels,
+          datasets: selectedCountries.map((c) => ({
+            label: c,
+            data: monthlyDeaths[c],
+            borderColor: colorOf(c),
             backgroundColor: 'transparent',
             tension: 0.4,
             pointRadius: 2
           }))
         });
 
-        // Préparer les données de propagation par continent
+        // ---- 4. Agrégation par continent ----------------------------------
         const spreadByContinent = {};
-        
-        // Initialiser les continents
-        Object.keys(CONTINENTS).forEach(continent => {
-          spreadByContinent[continent] = {
-            totalSpread: 0,
-            countries: new Set(),
-            countryData: {}
-          };
+        Object.keys(CONTINENTS).forEach((cont) => {
+          spreadByContinent[cont] = { total: 0, countries: [] };
         });
 
-        // Regrouper les données par continent
-        selectedCountries.forEach(country => {
-          const continent = getContinent(country);
-          if (continent && monthlySpread[country]) {
-            const maxSpread = Math.max(...monthlySpread[country]);
-            if (maxSpread > 0) {
-              spreadByContinent[continent].totalSpread += maxSpread;
-              spreadByContinent[continent].countries.add(country);
-              spreadByContinent[continent].countryData[country] = maxSpread;
-            }
+        selectedCountries.forEach((c) => {
+          const cont = getContinent(c);
+          const max = Math.max(...monthlySpread[c]);
+          if (max > 0) {
+            spreadByContinent[cont].total += max;
+            spreadByContinent[cont].countries.push(c);
           }
         });
 
-        // Créer le dataset pour le graphique de propagation
         setSpreadData({
-          labels: Object.keys(spreadByContinent).filter(continent => 
-            spreadByContinent[continent].countries.size > 0
-          ),
-          datasets: [{
-            label: 'Propagation par continent',
-            data: Object.entries(spreadByContinent)
-              .filter(([_, data]) => data.countries.size > 0)
-              .map(([continent, data]) => ({
-                x: data.totalSpread,
-                y: continent,
-                countries: Array.from(data.countries).join(', ')
-              })),
-            backgroundColor: Object.values(COUNTRY_COLORS).slice(0, Object.keys(spreadByContinent).length),
-            barThickness: 30
-          }]
+          labels: Object.keys(spreadByContinent).filter((k) => spreadByContinent[k].countries.length),
+          datasets: [
+            {
+              label: 'Propagation par continent',
+              data: Object.values(spreadByContinent)
+                .filter((v) => v.countries.length)
+                .map((v) => ({ x: v.total, y: v.countries.join(', '), countries: v.countries.join(', ') })),
+              backgroundColor: Object.values(COUNTRY_COLORS).slice(0, 5),
+              barThickness: 30
+            }
+          ]
         });
-
-      } catch (error) {
-        console.error('Erreur lors du chargement des prédictions:', error);
+      } catch (e) {
+        console.error(e);
         setError('Erreur lors du chargement des prédictions');
       } finally {
         setLoading(false);
       }
-    };
-
-    loadPredictions();
+    })();
   }, [selectedCountries]);
 
-  const createChartOptions = (title, yAxisLabel) => ({
+  // ------------------------------ OPTIONS ----------------------------------
+  const mkOptions = (title, label) => ({
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        position: 'right',
-        labels: {
-          usePointStyle: true,
-          pointStyle: 'circle',
-          padding: 20
-        }
-      },
-      title: {
-        display: true,
-        text: title
-      },
+      legend: { position: 'right', labels: { usePointStyle: true, pointStyle: 'circle', padding: 20 } },
+      title: { display: true, text: title },
       tooltip: {
         callbacks: {
-          label: function(context) {
-            return `${context.dataset.label}: ${context.parsed.y.toFixed(2)} ${yAxisLabel}`;
-          }
+          label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)} ${label}`
         }
       }
     },
     scales: {
-      y: {
-        beginAtZero: true,
-        title: {
-          display: true,
-          text: yAxisLabel
-        }
-      },
-      x: {
-        title: {
-          display: true,
-          text: 'Mois'
-        }
-      }
+      y: { beginAtZero: true, title: { display: true, text: label } },
+      x: { title: { display: true, text: 'Mois' } }
     }
   });
 
-  const casesOptions = createChartOptions(
-    'Moyenne mensuelle des nouveaux cas COVID-19 prédits pour 2025',
-    'nouveaux cas par jour en moyenne'
-  );
+  const casesOpts = mkOptions('Moyenne mensuelle des nouveaux cas COVID‑19 prédits (2025)', 'nouveaux cas / jour');
+  const deathsOpts = mkOptions('Moyenne mensuelle des décès COVID‑19 prédits (2025)', 'décès / jour');
 
-  const deathsOptions = createChartOptions(
-    'Moyenne mensuelle des décès COVID-19 prédits pour 2025',
-    'décès par jour en moyenne'
-  );
-
-  const spreadOptions = {
+  const spreadOpts = {
     indexAxis: 'y',
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        display: false
-      },
-      title: {
-        display: true,
-        text: 'Propagation géographique prédite par continent en 2025'
-      },
+      legend: { display: false },
+      title: { display: true, text: 'Propagation géographique prédite par continent (2025)' },
       tooltip: {
         callbacks: {
-          label: function(context) {
-            const value = context.parsed.x;
-            const continent = context.parsed.y;
-            const countries = context.raw.countries;
-            return [
-              `${continent}: ${value.toFixed(0)} pays touchés`,
-              `Pays inclus: ${countries}`
-            ];
+          label: (ctx) => {
+            const v = ctx.parsed.x;
+            const countries = ctx.raw.countries;
+            return [`${v.toFixed(0)} pays touchés`, `Pays inclus : ${countries}`];
           }
         }
       }
     },
     scales: {
-      x: {
-        title: {
-          display: true,
-          text: 'Nombre de pays touchés'
-        },
-        beginAtZero: true
-      },
-      y: {
-        title: {
-          display: true,
-          text: 'Continents'
-        }
-      }
+      x: { beginAtZero: true, title: { display: true, text: 'Nombre de pays touchés' } },
+      y: { title: { display: true, text: 'Continents' } }
     }
   };
 
+  // ------------------------------ RENDER ------------------------------------
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h4" gutterBottom>
-        Prédictions COVID-19
+        Prédictions COVID‑19
       </Typography>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      {/* Filtres */}
+      {/* Sélecteur de pays */}
       <Box sx={{ mb: 3 }}>
         <Autocomplete
           multiple
           options={availableCountries}
           value={selectedCountries}
-          onChange={(event, newValue) => {
-            if (newValue.length <= 5) {
-              setSelectedCountries(newValue);
-            }
-          }}
+          onChange={(_, v) => v.length <= 5 && setSelectedCountries(v)}
           renderInput={(params) => (
-            <TextField
-              {...params}
-              label="Sélectionner les pays (max 5)"
-              placeholder={selectedCountries.length >= 5 ? "" : "Chercher un pays..."}
-            />
+            <TextField {...params} label="Sélectionner les pays (max 5)" />
           )}
           renderTags={(value, getTagProps) =>
-            value.map((option, index) => {
-              const props = getTagProps({ index });
-              const { key, ...otherProps } = props;
+            value.map((opt, idx) => {
+              const { key, ...rest } = getTagProps({ index: idx });
               return (
                 <Chip
                   key={key}
-                  label={option}
-                  {...otherProps}
-                  style={{
-                    backgroundColor: COUNTRY_COLORS[option] || '#e0e0e0',
-                    color: 'white'
-                  }}
+                  label={opt}
+                  {...rest}
+                  style={{ backgroundColor: COUNTRY_COLORS[opt] || '#888', color: '#fff' }}
                 />
               );
             })
           }
           loading={loading}
-          disabled={loading}
-          sx={{ width: '100%' }}
         />
       </Box>
 
       {loading ? (
-        <Typography>Chargement des données...</Typography>
+        <Typography>Chargement…</Typography>
       ) : (
         <>
-          <Typography>
-            {availableCountries.length} pays disponibles
-          </Typography>
-          
-          {/* Graphiques */}
           <Grid container spacing={3}>
-            {/* Graphique des cas */}
             <Grid item xs={12}>
-              <Paper sx={{ p: 2, height: '500px' }}>
-                {casesData && <Line data={casesData} options={casesOptions} />}
-              </Paper>
+              <Paper sx={{ p: 2, height: 500 }}>{casesData && <Line data={casesData} options={casesOpts} />}</Paper>
             </Grid>
-            
-            {/* Graphique des décès */}
             <Grid item xs={12}>
-              <Paper sx={{ p: 2, height: '500px' }}>
-                {deathsData && <Line data={deathsData} options={deathsOptions} />}
-              </Paper>
+              <Paper sx={{ p: 2, height: 500 }}>{deathsData && <Line data={deathsData} options={deathsOpts} />}</Paper>
             </Grid>
-
-            {/* Graphique de propagation géographique */}
             <Grid item xs={12}>
-              <Paper sx={{ p: 2, height: '600px' }}>
-                {spreadData && <Bar data={spreadData} options={spreadOptions} />}
-              </Paper>
+              <Paper sx={{ p: 2, height: 600 }}>{spreadData && <Bar data={spreadData} options={spreadOpts} />}</Paper>
             </Grid>
           </Grid>
         </>
@@ -437,4 +320,4 @@ const Predictions = () => {
   );
 };
 
-export default Predictions; 
+export default Predictions;
