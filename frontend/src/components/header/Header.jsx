@@ -1,14 +1,25 @@
 import React, { useState, useContext } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AccessibilityContext } from '../../context';
+import { useAuth } from '../../context';
 import './Header.css';
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   const { darkMode } = useContext(AccessibilityContext);
+  const { logout, user, selectedCountry } = useAuth();
 
   const isActive = (path) => location.pathname === path;
+
+  const getCountryName = (code) => {
+    const countries = {
+      'FR': 'France',
+      'CH': 'Suisse', 
+      'US': 'États-Unis'
+    };
+    return countries[code] || 'Région';
+  };
 
   return (
     <header className={`modern-header ${darkMode ? 'dark' : ''}`} role="banner">
@@ -68,6 +79,32 @@ const Header = () => {
             Accessibilité
           </Link>
         </nav>
+
+        <div className="header-user-info">
+          {selectedCountry && (
+            <span className="user-country" style={{ marginRight: '1rem', color: darkMode ? '#fff' : '#666' }}>
+              {getCountryName(selectedCountry)}
+            </span>
+          )}
+          <span className="user-email" style={{ marginRight: '1rem', color: darkMode ? '#fff' : '#666' }}>
+            {user?.email}
+          </span>
+          <button 
+            onClick={logout}
+            className="logout-btn"
+            style={{
+              background: 'none',
+              border: '1px solid currentColor',
+              color: darkMode ? '#fff' : '#666',
+              padding: '0.5rem 1rem',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            Déconnexion
+          </button>
+        </div>
       </div>
     </header>
   );

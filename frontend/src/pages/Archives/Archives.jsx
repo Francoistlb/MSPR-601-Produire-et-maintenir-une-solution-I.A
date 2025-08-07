@@ -8,8 +8,8 @@ import {
   Paper,
   Grid
 } from '@mui/material';
-import CovidArchiveFilter from '../CovidArchiveFilter';
-import CovidArchiveChart from '../charts/CovidArchiveChart';
+import CovidArchiveFilter from '../../components/CovidArchiveFilter';
+import CovidArchiveChart from '../../components/charts/CovidArchiveChart';
 import { fetchCovidData, fetchLocations } from '../../services/api';
 
 const Archives = () => {
