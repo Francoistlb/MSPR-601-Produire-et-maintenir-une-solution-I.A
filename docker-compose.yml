@@ -47,6 +47,7 @@ services:
       - DATA_RETENTION_DAYS=${DATA_RETENTION_DAYS:-2555}
     volumes:
       - ./backend:/app 
+      - ./backups:/app/backups
     networks:
       - default
     healthcheck:
@@ -112,6 +113,7 @@ services:
 volumes:
   postgres-data:
   pgadmin-data:
+  backup-data:
 
 networks:
   default:
