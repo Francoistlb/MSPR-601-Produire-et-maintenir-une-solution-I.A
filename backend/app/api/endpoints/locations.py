@@ -12,6 +12,7 @@ router = APIRouter()
 
 #Récupérer la liste de tous les pays
 @router.get("/", response_model=List[DLocationRead])
+@router.get("", response_model=List[DLocationRead])  # Route sans slash final
 async def liste_des_pays_fc(
     skip: int = 0, 
     limit: int = 100, 
