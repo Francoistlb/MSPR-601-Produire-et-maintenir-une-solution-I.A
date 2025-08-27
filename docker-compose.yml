@@ -2,10 +2,20 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        COUNTRY: ${COUNTRY:-usa}
     expose:
       - "80"
     depends_on:
       - backend
+    environment:
+      - COUNTRY=${COUNTRY:-usa}
+      - REACT_APP_API_URL=/api
+      - REACT_APP_DATAVIZ_ENABLED=${ENABLE_DATAVIZ:-true}
+      - REACT_APP_TECHNICAL_API_ENABLED=${ENABLE_TECHNICAL_API:-true}
+      - REACT_APP_MULTI_LANGUAGE=${MULTI_LANGUAGE:-false}
+      - REACT_APP_SUPPORTED_LANGUAGES=${SUPPORTED_LANGUAGES:-en}
+      - REACT_APP_RGPD_MODE=${RGPD_COMPLIANCE:-false}
     networks:
       - default
     restart: unless-stopped
@@ -19,10 +29,22 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    env_file:
-      - .env.docker
     environment:
       - TZ=UTC
+      - COUNTRY=${COUNTRY:-usa}
+      - ENV=${ENV:-production}
+      - DATABASE_URL=${DATABASE_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALGORITHM=${ALGORITHM}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
+      - COVID_DATA_URL=${COVID_DATA_URL}
+      - MPOX_KAGGLE_DATASET=${MPOX_KAGGLE_DATASET}
+      - ENABLE_TECHNICAL_API=${ENABLE_TECHNICAL_API:-true}
+      - ENABLE_DATAVIZ=${ENABLE_DATAVIZ:-true}
+      - RGPD_COMPLIANCE=${RGPD_COMPLIANCE:-false}
+      - MULTI_LANGUAGE=${MULTI_LANGUAGE:-false}
+      - SUPPORTED_LANGUAGES=${SUPPORTED_LANGUAGES:-en}
+      - DATA_RETENTION_DAYS=${DATA_RETENTION_DAYS:-2555}
     volumes:
       - ./backend:/app 
     networks:
@@ -44,7 +66,6 @@ services:
     depends_on:
       - frontend
       - backend
-      - pgadmin
     networks:
       - default
     restart: unless-stopped
@@ -53,10 +74,10 @@ services:
     image: dpage/pgadmin4
     expose:
       - "80"
-    env_file:
-      - .env.docker
     environment:
       - TZ=UTC
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
     volumes:
       - pgadmin-data:/var/lib/pgadmin
     depends_on:
@@ -64,15 +85,18 @@ services:
     networks:
       - default
     restart: unless-stopped
+    profiles:
+      - pgadmin
 
   db:
     image: postgres:14
     ports:
       - "5434:5432"
-    env_file:
-      - .env.docker
     environment:
       - TZ=UTC
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
