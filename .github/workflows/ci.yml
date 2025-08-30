@@ -37,44 +37,7 @@ jobs:
         pip install flake8 black pytest
 
 
-    - name: Discord notification
-      if: always()
-      env:
-        DISCORD_WEBHOOK: ${{ fromJson(secrets.ENV_MSPR).DISCORD_WEBHOOK_URL }}
-      run: |
-          if [ "${{ job.status }}" == "success" ]; then
-            curl -H "Content-Type: application/json" \
-                -X POST \
-                -d '{
-                  "embeds": [{
-                    "title": "✅ Build Success",
-                    "description": "Tests passed successfully! 🎉",
-                    "color": 3066993,
-                    "fields": [
-                      {"name": "Branch", "value": "${{ github.ref_name }}", "inline": true},
-                      {"name": "Commit", "value": "`${{ github.sha }}`", "inline": true},
-                      {"name": "Author", "value": "${{ github.actor }}", "inline": true}
-                    ]
-                  }]
-                }' \
-                $DISCORD_WEBHOOK
-          else
-            curl -H "Content-Type: application/json" \
-                -X POST \
-                -d '{
-                  "embeds": [{
-                    "title": "❌ Build Failed",
-                    "description": "Tests failed! 💥",
-                    "color": 15158332,
-                    "fields": [
-                      {"name": "Branch", "value": "${{ github.ref_name }}", "inline": true},
-                      {"name": "Commit", "value": "`${{ github.sha }}`", "inline": true},
-                      {"name": "Author", "value": "${{ github.actor }}", "inline": true}
-                    ]
-                  }]
-                }' \
-                $DISCORD_WEBHOOK
-          fi
+
 
     # ---------- NODE / Tests Cypress ----------
     - name: Set up Node.js
@@ -130,17 +93,21 @@ jobs:
     - name: Wait for backend to be ready
       run: |
         for i in {1..30}; do
-          curl -sSf http://localhost:8080/health && break
+          curl -sSf http://localhost:8080/api/health && break
           echo "⏳ backend pas prêt ($i/30)"; sleep 3
         done
 
     - name: Cypress run
+      env:
+        COUNTRY: usa
+        ENV: test
+        CYPRESS_BASE_URL: http://localhost:8080
       uses: cypress-io/github-action@v6
       with:
         working-directory: frontend
         browser: chrome
         start: ""               # serveur déjà lancé
-        wait-on: "http://localhost:8080"
+        wait-on: "http://localhost:8080/api/health"
 
     - name: Upload Cypress artifacts (si échec)
       if: failure()
@@ -150,3 +117,42 @@ jobs:
         path: |
           frontend/cypress/videos
           frontend/cypress/screenshots
+
+    - name: Discord notification
+      if: always()
+      env:
+        DISCORD_WEBHOOK: ${{ fromJson(secrets.ENV_MSPR).DISCORD_WEBHOOK_URL }}
+      run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            curl -H "Content-Type: application/json" \
+                -X POST \
+                -d '{
+                  "embeds": [{
+                    "title": "✅ Build Success",
+                    "description": "Tests passed successfully! 🎉",
+                    "color": 3066993,
+                    "fields": [
+                      {"name": "Branch", "value": "${{ github.ref_name }}", "inline": true},
+                      {"name": "Commit", "value": "`${{ github.sha }}`", "inline": true},
+                      {"name": "Author", "value": "${{ github.actor }}", "inline": true}
+                    ]
+                  }]
+                }' \
+                $DISCORD_WEBHOOK
+          else
+            curl -H "Content-Type: application/json" \
+                -X POST \
+                -d '{
+                  "embeds": [{
+                    "title": "❌ Build Failed",
+                    "description": "Tests failed! 💥",
+                    "color": 15158332,
+                    "fields": [
+                      {"name": "Branch", "value": "${{ github.ref_name }}", "inline": true},
+                      {"name": "Commit", "value": "`${{ github.sha }}`", "inline": true},
+                      {"name": "Author", "value": "${{ github.actor }}", "inline": true}
+                    ]
+                  }]
+                }' \
+                $DISCORD_WEBHOOK
+          fi
