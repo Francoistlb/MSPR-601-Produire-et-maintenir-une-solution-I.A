@@ -195,6 +195,13 @@
   color: #fff;
 }
 
+.user-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+}
+
 .user-country {
   background: rgba(255, 255, 255, 0.2);
   padding: 0.3rem 0.6rem;

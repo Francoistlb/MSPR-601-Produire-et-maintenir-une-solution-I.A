@@ -3,6 +3,19 @@ import { format } from 'date-fns';
 // Configuration de l'API
 const API_BASE_URL = '/api';
 
+/**
+ * Gère les erreurs 403 retournées par le backend pour les API techniques
+ * Cette fonction est utilisée pour les endpoints qui nécessitent TECHNICAL_API_ENABLED
+ * comme /covid et /mpox. Elle transforme l'erreur 403 en message utilisateur.
+ */
+const handleTechnicalApiError = (error) => {
+  // Si l'API retourne 403 ou 404, c'est que la fonctionnalité n'est pas disponible
+  if (error.message.includes('403') || error.message.includes('404')) {
+    throw new Error('Cette fonctionnalité n\'est pas disponible dans votre pays. Seules les prédictions sont accessibles.');
+  }
+  throw error;
+};
+
 // Fonction utilitaire pour gérer les headers avec token
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
@@ -174,6 +187,8 @@ export const testProtectedRoute = async () => {
 };
 
 // =================== DATA API ===================
+// Note: Les endpoints /covid et /mpox sont protégés par TECHNICAL_API_ENABLED
+// et retourneront une erreur 403 si la fonctionnalité n'est pas activée pour le pays
 
 export const fetchCountries = async () => {
   try {
@@ -210,23 +225,26 @@ export const fetchCountries = async () => {
  */
 export const fetchMultiCountryPredictions = async (params) => {
   try {
+    // Les erreurs 403 seront gérées par handleTechnicalApiError
+
     // Créer un tableau de promesses pour chaque pays
     const promises = params.pays.map(async (pays) => {
-      // Construction de l'URL avec les paramètres
-      const url = new URL(`${API_BASE_URL}/predictions/`);
+      // Construction de l'URL avec URLSearchParams au lieu de new URL()
+      const urlParams = new URLSearchParams();
       
       // Ajout des paramètres
-      url.searchParams.append('indicateur', params.indicateur || 'new_cases');
-      url.searchParams.append('location_id', pays.location_id);
+      urlParams.append('indicateur', params.indicateur || 'new_cases');
+      urlParams.append('location_id', pays.location_id);
       
       if (params.dateDebut) {
-        url.searchParams.append('date_debut', format(params.dateDebut, 'yyyy-MM-dd'));
+        urlParams.append('date_debut', format(params.dateDebut, 'yyyy-MM-dd'));
       }
       if (params.dateFin) {
-        url.searchParams.append('date_fin', format(params.dateFin, 'yyyy-MM-dd'));
+        urlParams.append('date_fin', format(params.dateFin, 'yyyy-MM-dd'));
       }
 
-      console.log('Fetching URL:', url.toString()); 
+      const url = `${API_BASE_URL}/predictions/?${urlParams.toString()}`;
+      console.log('🔮 Fetching predictions URL:', url); 
 
       const response = await fetch(url, {
         headers: getAuthHeaders()
@@ -246,7 +264,7 @@ export const fetchMultiCountryPredictions = async (params) => {
     return Promise.all(promises);
   } catch (error) {
     console.error('Erreur lors de la récupération des prédictions:', error);
-    throw error;
+    throw error;  // Les prédictions ne sont pas une API technique
   }
 };
 
@@ -348,34 +366,38 @@ export const fetchLocations = async () => {
  */
 export const fetchCovidData = async (filters = {}) => {
   try {
+    // Les erreurs 403 seront gérées par handleTechnicalApiError
+
     if (!filters.countries || filters.countries.length === 0) {
       return {};
     }
 
     // Créer une promesse pour chaque pays
     const promises = filters.countries.map(async (country) => {
-      const url = new URL(`${API_BASE_URL}/covid/`);
+      // Construire l'URL avec URLSearchParams au lieu de new URL()
+      const params = new URLSearchParams();
       
-      url.searchParams.append('location_id', country.location_id);
+      params.append('location_id', country.location_id);
       
       if (filters.startDate) {
-        url.searchParams.append('start_date', format(filters.startDate, 'yyyy-MM-dd'));
+        params.append('start_date', format(filters.startDate, 'yyyy-MM-dd'));
       }
       
       if (filters.endDate) {
-        url.searchParams.append('end_date', format(filters.endDate, 'yyyy-MM-dd'));
+        params.append('end_date', format(filters.endDate, 'yyyy-MM-dd'));
       }
       
-      url.searchParams.append('limit', '2000');
+      params.append('limit', '2000');
 
-      console.log(`Fetching COVID data for ${country.location_name}:`, url.toString());
+      const url = `${API_BASE_URL}/covid/?${params.toString()}`;
+      console.log(`🔍 Fetching COVID data for ${country.location_name}:`, url);
 
       const response = await fetch(url);
       
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`Error response for ${country.location_name}:`, errorText);
-        throw new Error(`Erreur HTTP: ${response.status} pour ${country.location_name}`);
+        handleTechnicalApiError(new Error(`Erreur HTTP: ${response.status} pour ${country.location_name}`));
       }
       
       const data = await response.json();
@@ -398,6 +420,6 @@ export const fetchCovidData = async (filters = {}) => {
     return organizedData;
   } catch (error) {
     console.error('Erreur lors de la récupération des données COVID:', error);
-    throw error;
+    handleTechnicalApiError(error);
   }
 };

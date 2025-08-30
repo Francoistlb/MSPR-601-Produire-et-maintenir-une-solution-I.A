@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useConfig } from '../../context/ConfigContext';
 
 const Accessibility = () => {
+  const { isMultiLanguage, supportedLanguages } = useConfig();
   const [highContrast, setHighContrast] = useState(false);
 
   return (
@@ -28,6 +30,9 @@ const Accessibility = () => {
           <li>Polices lisibles et tailles adaptables</li>
           <li>Compatibilité avec les lecteurs d'écran (VoiceOver, NVDA, JAWS...)</li>
           <li>Labels ARIA sur tous les éléments interactifs</li>
+          {isMultiLanguage && (
+            <li>Support multi-langues ({supportedLanguages.join(', ')})</li>
+          )}
         </ul>
       </section>
       <section>

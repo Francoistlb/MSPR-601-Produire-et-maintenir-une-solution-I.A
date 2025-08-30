@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
+from app.api.dependencies import check_rgpd_compliance
 from app.core.database import get_db
 from app.crud.location import (
     creer_pays, obtenir_pays_par_id, liste_pays, obtenir_pays_par_nom, supprimer_pays
@@ -13,6 +14,7 @@ router = APIRouter()
 #Récupérer la liste de tous les pays
 @router.get("/", response_model=List[DLocationRead])
 @router.get("", response_model=List[DLocationRead])  # Route sans slash final
+@check_rgpd_compliance()
 async def liste_des_pays_fc(
     skip: int = 0, 
     limit: int = 100, 
@@ -23,6 +25,7 @@ async def liste_des_pays_fc(
 
 #Récupérer les informations d'un pays par son identifiant
 @router.get("/{location_id}", response_model=DLocationRead)
+@check_rgpd_compliance()
 async def obtenir_pays_fc(
     location_id: int, 
     db: AsyncSession = Depends(get_db)
@@ -37,6 +40,7 @@ async def obtenir_pays_fc(
 
 #Récupérer les informations d'un pays par son nom exact
 @router.get("/nom/{location_name}", response_model=DLocationRead)
+@check_rgpd_compliance()
 async def rechercher_pays_par_nom_fc(
     location_name: str, 
     db: AsyncSession = Depends(get_db)
@@ -51,6 +55,7 @@ async def rechercher_pays_par_nom_fc(
 
 #Ajouter un nouveau pays à la base de données
 @router.post("/", response_model=DLocationRead, status_code=status.HTTP_201_CREATED)
+@check_rgpd_compliance()
 async def creer_pays_fc(
     location: DLocationCreate, 
     db: AsyncSession = Depends(get_db)
@@ -66,6 +71,7 @@ async def creer_pays_fc(
     return await creer_pays(db, location)
 
 @router.delete("/{location_id}", status_code=status.HTTP_204_NO_CONTENT)
+@check_rgpd_compliance()
 async def supprimer_pays_fc(
     location_id: int,
     db: AsyncSession = Depends(get_db)
