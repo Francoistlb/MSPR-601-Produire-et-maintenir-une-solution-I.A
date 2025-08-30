@@ -3,6 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from datetime import date
 
+from app.api.dependencies import check_technical_api, check_rgpd_compliance
+from app.core.config import settings
 from app.core.database import get_db
 from app.crud.mpox import (
     creer_donnees_mpox, obtenir_donnees_mpox_par_id, liste_donnees_mpox,
@@ -14,6 +16,8 @@ from app.crud.location import obtenir_pays_par_id
 router = APIRouter()
 
 @router.get("/", response_model=List[FMpoxRead])
+@check_technical_api()
+@check_rgpd_compliance()
 async def liste_donnees_mpox_endpoint(
     skip: int = 0,
     limit: int = 100,
@@ -25,6 +29,8 @@ async def liste_donnees_mpox_endpoint(
     return await liste_donnees_mpox(db, skip, limit, location_id, start_date, end_date)
 
 @router.get("/{mpox_fact_id}", response_model=FMpoxRead)
+@check_technical_api()
+@check_rgpd_compliance()
 async def obtenir_donnees_mpox_par_id_endpoint(
     mpox_fact_id: int,
     db: AsyncSession = Depends(get_db)
@@ -35,6 +41,8 @@ async def obtenir_donnees_mpox_par_id_endpoint(
     return db_mpox
 
 @router.post("/", response_model=FMpoxRead, status_code=status.HTTP_201_CREATED)
+@check_technical_api()
+@check_rgpd_compliance()
 async def creer_donnees_mpox_endpoint(
     mpox_data: FMpoxCreate,
     db: AsyncSession = Depends(get_db)
@@ -48,6 +56,8 @@ async def creer_donnees_mpox_endpoint(
     return await creer_donnees_mpox(db, mpox_data)
 
 @router.put("/{mpox_fact_id}", response_model=FMpoxRead)
+@check_technical_api()
+@check_rgpd_compliance()
 async def mettre_a_jour_donnees_mpox_endpoint(
     mpox_fact_id: int,
     mpox_data: FMpoxCreate,
@@ -69,6 +79,8 @@ async def mettre_a_jour_donnees_mpox_endpoint(
     return updated_mpox
 
 @router.delete("/{mpox_fact_id}", status_code=status.HTTP_204_NO_CONTENT)
+@check_technical_api()
+@check_rgpd_compliance()
 async def supprimer_donnees_mpox_endpoint(
     mpox_fact_id: int,
     db: AsyncSession = Depends(get_db)

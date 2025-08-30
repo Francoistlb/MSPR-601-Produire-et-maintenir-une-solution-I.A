@@ -3,19 +3,17 @@ services:
     build:
       context: ./frontend
       args:
-        COUNTRY: ${COUNTRY:-usa}
+        COUNTRY: ${COUNTRY}
     expose:
       - "80"
     depends_on:
       - backend
     environment:
-      - COUNTRY=${COUNTRY:-usa}
-      - REACT_APP_API_URL=/api
-      - REACT_APP_DATAVIZ_ENABLED=${ENABLE_DATAVIZ:-true}
-      - REACT_APP_TECHNICAL_API_ENABLED=${ENABLE_TECHNICAL_API:-true}
-      - REACT_APP_MULTI_LANGUAGE=${MULTI_LANGUAGE:-false}
-      - REACT_APP_SUPPORTED_LANGUAGES=${SUPPORTED_LANGUAGES:-en}
-      - REACT_APP_RGPD_MODE=${RGPD_COMPLIANCE:-false}
+      - COUNTRY=${COUNTRY}
+      - VITE_COUNTRY=${COUNTRY}
+      - VITE_API_URL=/api
+      - VITE_ENV=${ENV}
+
     networks:
       - default
     restart: unless-stopped
@@ -30,21 +28,23 @@ services:
       db:
         condition: service_healthy
     environment:
+      # Variables essentielles
       - TZ=UTC
-      - COUNTRY=${COUNTRY:-usa}
-      - ENV=${ENV:-production}
-      - DATABASE_URL=${DATABASE_URL}
+      - COUNTRY=${COUNTRY}  # Seule variable nécessaire pour la configuration pays
+      - ENV=${ENV}
+
+      # Configuration de sécurité
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
+
+      # Configuration base de données
+      - DATABASE_URL=${DATABASE_URL}
+
+      # URLs des données
       - COVID_DATA_URL=${COVID_DATA_URL}
       - MPOX_KAGGLE_DATASET=${MPOX_KAGGLE_DATASET}
-      - ENABLE_TECHNICAL_API=${ENABLE_TECHNICAL_API:-true}
-      - ENABLE_DATAVIZ=${ENABLE_DATAVIZ:-true}
-      - RGPD_COMPLIANCE=${RGPD_COMPLIANCE:-false}
-      - MULTI_LANGUAGE=${MULTI_LANGUAGE:-false}
-      - SUPPORTED_LANGUAGES=${SUPPORTED_LANGUAGES:-en}
-      - DATA_RETENTION_DAYS=${DATA_RETENTION_DAYS:-2555}
+
     volumes:
       - ./backend:/app 
     networks:

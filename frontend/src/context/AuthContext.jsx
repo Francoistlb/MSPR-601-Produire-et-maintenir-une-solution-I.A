@@ -13,14 +13,12 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [selectedCountry, setSelectedCountry] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Vérifier si l'utilisateur est déjà connecté au chargement
     const initializeAuth = async () => {
       const token = localStorage.getItem('token');
-      const savedCountry = localStorage.getItem('selectedCountry');
       
       if (token) {
         try {
@@ -33,13 +31,9 @@ export const AuthProvider = ({ children }) => {
           // Token invalide, nettoyer les données
           localStorage.removeItem('token');
           localStorage.removeItem('user');
-          localStorage.removeItem('selectedCountry');
         }
       }
       
-      if (savedCountry) {
-        setSelectedCountry(savedCountry);
-      }
       setLoading(false);
     };
 
@@ -95,29 +89,18 @@ export const AuthProvider = ({ children }) => {
       // Nettoyer les données locales dans tous les cas
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      localStorage.removeItem('selectedCountry');
       setUser(null);
-      setSelectedCountry(null);
       console.log('🚪 Local auth data cleared');
     }
   };
 
-  const selectCountry = (country) => {
-    localStorage.setItem('selectedCountry', country);
-    setSelectedCountry(country);
-    console.log('🌍 Country selected:', country);
-  };
-
   const value = {
     user,
-    selectedCountry,
     loading,
     login,
     register,
     logout,
-    selectCountry,
-    isAuthenticated: !!user,
-    hasSelectedCountry: !!selectedCountry
+    isAuthenticated: !!user
   };
 
   return (

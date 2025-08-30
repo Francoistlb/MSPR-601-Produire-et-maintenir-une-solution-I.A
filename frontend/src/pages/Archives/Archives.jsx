@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useConfig } from '../../context/ConfigContext';
 import { 
   Container, 
   Typography, 
@@ -11,8 +12,8 @@ import {
 import CovidArchiveFilter from '../../components/CovidArchiveFilter';
 import CovidArchiveChart from '../../components/charts/CovidArchiveChart';
 import { fetchCovidData, fetchLocations } from '../../services/api';
-
 const Archives = () => {
+  const { isDatavizEnabled, isTechnicalApiEnabled, countryName } = useConfig();
   const [covidData, setCovidData] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -28,12 +29,15 @@ const Archives = () => {
 
   // Charger les données quand les filtres changent
   useEffect(() => {
+    if (!isTechnicalApiEnabled) {
+      return;
+    }
     if (selectedCountries.length > 0) {
       loadCovidData();
     } else {
       setCovidData({});
     }
-  }, [selectedCountries, startDate, endDate]);
+  }, [selectedCountries, startDate, endDate, isTechnicalApiEnabled]);
 
   const loadCountries = async () => {
     try {
@@ -79,7 +83,11 @@ const Archives = () => {
       setCovidData(data);
     } catch (err) {
       console.error('Erreur lors du chargement des données:', err);
-      setError('Erreur lors du chargement des données COVID-19');
+      if (err.message.includes('pas disponible dans votre pays')) {
+        setError('Cette fonctionnalité n\'est pas disponible dans votre pays.');
+      } else {
+        setError('Erreur lors du chargement des données COVID-19');
+      }
     } finally {
       setLoading(false);
     }
@@ -96,6 +104,17 @@ const Archives = () => {
   const handleEndDateChange = (newDate) => {
     setEndDate(newDate);
   };
+  if (!isTechnicalApiEnabled) {
+    return (
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Alert severity="info">
+          L'accès aux données brutes n'est pas disponible dans votre pays. Seules les prédictions sont accessibles.
+        </Alert>
+      </Container>
+    );
+  }
+
+
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Typography variant="h3" component="h1" gutterBottom>
@@ -146,44 +165,70 @@ const Archives = () => {
         )}
 
         {!loading && !error && selectedCountries.length > 0 && Object.keys(covidData).length > 0 && (
-          <Grid container spacing={4}>
-            <Grid item xs={12} lg={6}>
-              <Paper sx={{ p: 3, height: '500px' }} data-testid="chart-new_cases">
-                <CovidArchiveChart 
-                  data={covidData}
-                  metric="new_cases"
-                  title="Nouveaux cas COVID-19"
-                />
+          <>
+            {/* Affichage conditionnel selon le pays */}
+            {isDatavizEnabled ? (
+              <Grid container spacing={4}>
+                <Grid item xs={12} lg={6}>
+                  <Paper sx={{ p: 3, height: '500px' }} data-testid="chart-new_cases">
+                    <CovidArchiveChart 
+                      data={covidData}
+                      metric="new_cases"
+                      title="Nouveaux cas COVID-19"
+                    />
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} lg={6}>
+                  <Paper sx={{ p: 3, height: '500px' }} data-testid="chart-new_deaths">
+                    <CovidArchiveChart 
+                      data={covidData}
+                      metric="new_deaths"
+                      title="Nouveaux décès COVID-19"
+                    />
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} lg={6}>
+                  <Paper sx={{ p: 3, height: '500px' }} data-testid="chart-total_cases">
+                    <CovidArchiveChart 
+                      data={covidData}
+                      metric="total_cases"
+                      title="Cas totaux COVID-19 (cumulés)"
+                    />
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} lg={6}>
+                  <Paper sx={{ p: 3, height: '500px' }} data-testid="chart-hosp_patients">
+                    <CovidArchiveChart 
+                      data={covidData}
+                      metric="hosp_patients"
+                      title="Patients hospitalisés"
+                    />
+                  </Paper>
+                </Grid>
+              </Grid>
+            ) : (
+              /* Pour la Suisse : Affichage des données sous forme de tableau */
+              <Paper sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom>
+                  Données COVID-19 - {countryName}
+                </Typography>
+                <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                  Visualisations graphiques non disponibles pour ce pays.
+                  Données disponibles sous forme tabulaire.
+                </Typography>
+                <Box sx={{ mt: 2 }}>
+                  {Object.entries(covidData).map(([country, data]) => (
+                    <Box key={country} sx={{ mb: 3 }}>
+                      <Typography variant="h6">{country}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {data.length} entrées de données disponibles
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
               </Paper>
-            </Grid>
-            <Grid item xs={12} lg={6}>
-              <Paper sx={{ p: 3, height: '500px' }} data-testid="chart-new_deaths">
-                <CovidArchiveChart 
-                  data={covidData}
-                  metric="new_deaths"
-                  title="Nouveaux décès COVID-19"
-                />
-              </Paper>
-            </Grid>
-            <Grid item xs={12} lg={6}>
-              <Paper sx={{ p: 3, height: '500px' }} data-testid="chart-total_cases">
-                <CovidArchiveChart 
-                  data={covidData}
-                  metric="total_cases"
-                  title="Cas totaux COVID-19 (cumulés)"
-                />
-              </Paper>
-            </Grid>
-            <Grid item xs={12} lg={6}>
-              <Paper sx={{ p: 3, height: '500px' }} data-testid="chart-hosp_patients">
-                <CovidArchiveChart 
-                  data={covidData}
-                  metric="hosp_patients"
-                  title="Patients hospitalisés"
-                />
-              </Paper>
-            </Grid>
-          </Grid>
+            )}
+          </>
         )}
 
         {!loading && !error && selectedCountries.length > 0 && Object.keys(covidData).length === 0 && (

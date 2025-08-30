@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useConfig } from '../../context/ConfigContext';
 import {
   Container,
   Paper,
@@ -65,6 +66,8 @@ const getContinent = (country) =>
 
 // ---------------------------------------------------------------------------
 const Predictions = () => {
+  // Les prédictions sont indépendantes des configurations par pays
+
   // ------------------------------- STATES ----------------------------------
   const [availableCountries, setAvailableCountries] = useState([]);
   const [selectedCountries, setSelectedCountries] = useState([]);
@@ -269,6 +272,8 @@ const Predictions = () => {
   };
 
   // ------------------------------ RENDER ------------------------------------
+  // Les prédictions sont toujours disponibles, indépendamment de isDatavizEnabled et isTechnicalEnabled
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h4" gutterBottom>

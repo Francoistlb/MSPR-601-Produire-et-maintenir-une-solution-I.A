@@ -1,30 +1,19 @@
 import React, { useState, useContext } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { AccessibilityContext } from '../../context';
-import { useAuth } from '../../context';
+import { NavLink } from 'react-router-dom';
+import { AccessibilityContext, useAuth, useConfig } from '../../context';
 import './Header.css';
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const location = useLocation();
-  const navigate = useNavigate();
   const { darkMode } = useContext(AccessibilityContext);
-  const { logout, user, selectedCountry } = useAuth();
+  const { logout, user } = useAuth();
+  const { countryName, isDatavizEnabled } = useConfig();
 
-  const isActive = (path) => location.pathname === path;
-
-  const getCountryName = (code) => {
-    const countries = {
-      'FR': 'France',
-      'CH': 'Suisse', 
-      'US': 'États-Unis'
-    };
-    return countries[code] || 'Région';
-  };
-
-  const handleCountryClick = () => {
-    navigate('/country-selector');
-  };
+  console.log('Header - Configuration pays:', {
+    countryName,
+    isDatavizEnabled,
+    rawCountry: import.meta.env.VITE_COUNTRY
+  });
 
   return (
     <header className={`modern-header ${darkMode ? 'dark' : ''}`} role="banner">
@@ -51,56 +40,56 @@ const Header = () => {
           role="navigation"
           aria-label="Navigation principale"
         >
-          <Link 
+          {/* Prédictions toujours disponibles */}
+          <NavLink 
             to="/predictions" 
-            className={`nav-link ${isActive('/predictions') ? 'active' : ''}`}
+            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
             onClick={() => setIsMobileMenuOpen(false)}
-            aria-current={isActive('/predictions') ? 'page' : undefined}
           >
             Prédictions
-          </Link>
-          <Link 
-            to="/archives" 
-            className={`nav-link ${isActive('/archives') ? 'active' : ''}`}
-            onClick={() => setIsMobileMenuOpen(false)}
-            aria-current={isActive('/archives') ? 'page' : undefined}
-          >
-            Archives
-          </Link>
-          <Link 
-            to="/comparaisons" 
-            className={`nav-link ${isActive('/comparaisons') ? 'active' : ''}`}
-            onClick={() => setIsMobileMenuOpen(false)}
-            aria-current={isActive('/comparaisons') ? 'page' : undefined}
-          >
-            Comparaisons
-          </Link>
-          <Link 
+          </NavLink>
+
+          {/* Visualisation des données selon le pays */}
+          {isDatavizEnabled && (
+            <>
+              <NavLink 
+                to="/archives" 
+                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Archives
+              </NavLink>
+              <NavLink 
+                to="/comparaisons" 
+                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Comparaisons
+              </NavLink>
+            </>
+          )}
+          <NavLink 
             to="/accessibilite" 
-            className={`nav-link ${isActive('/accessibilite') ? 'active' : ''}`}
+            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
             onClick={() => setIsMobileMenuOpen(false)}
-            aria-current={isActive('/accessibilite') ? 'page' : undefined}
           >
             Accessibilité
-          </Link>
+          </NavLink>
         </nav>
 
         <div className="header-user-info">
-          <span className="user-name">
-            {user?.username || user?.email}
-          </span>
-          {selectedCountry && (
-            <span 
-              className="user-country clickable" 
-              onClick={handleCountryClick}
-              title="Cliquer pour changer de région"
-            >
-              Région : {getCountryName(selectedCountry)}
+          <div className="user-details">
+            <span className="user-name">
+              {user?.username || user?.email}
             </span>
-          )}
+            <span className="user-country">
+              Pays : {countryName}
+            </span>
+          </div>
           <button 
             onClick={logout}
             className="logout-btn"
+            aria-label="Se déconnecter"
           >
             Déconnexion
           </button>

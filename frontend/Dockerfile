@@ -1,5 +1,14 @@
 FROM node:22 AS build
 
+# Définir les arguments de build
+ARG COUNTRY
+ARG ENV
+
+# Les rendre disponibles comme variables d'environnement
+ENV COUNTRY=${COUNTRY}
+ENV VITE_COUNTRY=${COUNTRY}
+ENV ENV=${ENV}
+
 WORKDIR /app
 
 COPY package*.json ./
