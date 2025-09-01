@@ -4,6 +4,7 @@ from sqlalchemy import text, and_
 from typing import List, Optional
 from datetime import datetime, date
 
+from app.api.dependencies import check_rgpd_compliance, check_technical_api
 from app.core.database import get_db, engine
 from app.crud import predi_covid as crud_predi_covid
 from app.crud import location as crud_location
@@ -130,6 +131,7 @@ async def get_countries_with_predictions(
         )
 
 @router.get("/all-predictions/{year}")
+@check_rgpd_compliance()
 async def get_all_predictions_by_year(
     year: int,
     db: AsyncSession = Depends(get_db)
@@ -205,6 +207,7 @@ async def get_all_predictions_by_year(
         )
 
 @router.get("/predictions-by-country/{year}")
+@check_rgpd_compliance()
 async def get_predictions_by_country_and_year(
     year: int,
     pays: str,
@@ -263,6 +266,7 @@ async def get_predictions_by_country_and_year(
         )
 
 @router.get("/", response_model=List[FPrediCovidRead])
+@check_rgpd_compliance()
 async def get_predictions(
     filters: PredictionFilters = Depends(),
     db: AsyncSession = Depends(get_db)
@@ -312,6 +316,7 @@ async def get_predictions(
         )
 
 @router.get("/{pred_id}", response_model=FPrediCovidRead)
+@check_rgpd_compliance()
 async def get_prediction_by_id(
     pred_id: int,
     db: AsyncSession = Depends(get_db)
@@ -328,6 +333,7 @@ async def get_prediction_by_id(
     return prediction
 
 @router.post("/generate/{year}", response_model=List[FPrediCovidRead])
+@check_rgpd_compliance()
 async def generate_predictions_for_year(
     year: int,
     db: AsyncSession = Depends(get_db)
@@ -397,6 +403,7 @@ async def generate_predictions_for_year(
         )
 
 @router.delete("/{pred_id}")
+@check_rgpd_compliance()
 async def delete_prediction(
     pred_id: int,
     db: AsyncSession = Depends(get_db)

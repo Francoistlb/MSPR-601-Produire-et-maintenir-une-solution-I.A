@@ -10,9 +10,10 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 # Configuration
-SECRET_KEY = "votre-clé-secrète-très-longue-et-complexe-changez-en-production-2025"  # À changer en production !
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+import os
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-key-change-in-production")
+ALGORITHM = "HS256" 
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 
 # Blacklist des tokens révoqués (en mémoire pour simplicité)
 blacklisted_tokens = set()

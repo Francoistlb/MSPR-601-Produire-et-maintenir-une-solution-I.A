@@ -4,6 +4,9 @@ from typing import List, Dict, Any, Optional
 from datetime import date
 import logging
 
+from app.api.dependencies import check_technical_api, check_rgpd_compliance
+from app.core.config import settings
+
 # Configurer le logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,6 +23,8 @@ router = APIRouter()
 
 # GET - Récupérer la liste des données COVID
 @router.get("/", response_model=List[FCovidRead])
+@check_technical_api()
+@check_rgpd_compliance()
 async def liste_donnees_covid_endpoint(
     skip: int = 0, 
     limit: int = 100,
@@ -45,6 +50,8 @@ async def liste_donnees_covid_endpoint(
 
 # GET - Récupérer une donnée COVID par son ID
 @router.get("/{covid_fact_id}", response_model=FCovidRead)
+@check_technical_api()
+@check_rgpd_compliance()
 async def obtenir_donnees_covid_par_id_endpoint(
     covid_fact_id: int, 
     db: AsyncSession = Depends(get_db)
@@ -71,6 +78,8 @@ async def obtenir_donnees_covid_par_id_endpoint(
 
 # POST - Créer une nouvelle donnée COVID (JSON)
 @router.post("/", response_model=FCovidRead, status_code=status.HTTP_201_CREATED)
+@check_technical_api()
+@check_rgpd_compliance()
 async def creer_donnees_covid_endpoint(
     covid_data: FCovidCreate, 
     db: AsyncSession = Depends(get_db)
@@ -140,6 +149,8 @@ async def creer_donnees_covid_endpoint(
 
 # PUT - Mettre à jour une donnée COVID existante
 @router.put("/{covid_fact_id}", response_model=FCovidRead)
+@check_technical_api()
+@check_rgpd_compliance()
 async def mettre_a_jour_donnees_covid_endpoint(
     covid_fact_id: int,
     covid_data: FCovidCreate,
@@ -164,6 +175,8 @@ async def mettre_a_jour_donnees_covid_endpoint(
 
 # DELETE - Supprimer une donnée COVID
 @router.delete("/{covid_fact_id}", status_code=status.HTTP_204_NO_CONTENT)
+@check_technical_api()
+@check_rgpd_compliance()
 async def supprimer_donnees_covid_endpoint(
     covid_fact_id: int,
     db: AsyncSession = Depends(get_db)

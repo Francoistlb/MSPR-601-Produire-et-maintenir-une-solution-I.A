@@ -1,0 +1,86 @@
+name: CD - Deploiement Continu
+
+on:
+  workflow_run:
+    workflows: ["CI - Lint * Tests * E2E"]
+    types:
+      - completed
+    branches: 
+      - main
+  
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - id: set-matrix
+        run: |
+          echo "matrix={\"country\":[\"usa\",\"france\",\"switzerland\"]}" >> $GITHUB_OUTPUT
+
+  deploy:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configuration pour ${{ matrix.country }}
+        run: |
+          echo "🚀 Déploiement pour ${{ matrix.country }}"
+          cp .env.${{ matrix.country }} .env
+
+      - name: Build et test
+        run: |
+          docker-compose --env-file .env.${{ matrix.country }} build
+          docker-compose --env-file .env.${{ matrix.country }} up -d
+      
+      - name: Vérification santé
+        run: |
+          echo "⏳ Attente démarrage services..."
+          sleep 30
+          curl -f http://localhost:8080/health || exit 1
+          echo "✅ Services démarrés avec succès"
+
+      - name: Notification Discord
+        if: always()
+        env:
+          DISCORD_WEBHOOK: ${{ fromJson(secrets.ENV_MSPR).DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            curl -H "Content-Type: application/json" -X POST -d '{
+              "embeds": [{
+                "title": "✅ Déploiement réussi - ${{ matrix.country }}",
+                "description": "Application déployée avec succès !",
+                "color": 3066993,
+                "fields": [
+                  {"name": "Pays", "value": "${{ matrix.country }}", "inline": true},
+                  {"name": "Environnement", "value": "production", "inline": true}
+                ]
+              }]
+            }' $DISCORD_WEBHOOK
+          else
+            curl -H "Content-Type: application/json" -X POST -d '{
+              "embeds": [{
+                "title": "❌ Échec déploiement - ${{ matrix.country }}",
+                "description": "Erreur lors du déploiement",
+                "color": 15158332,
+                "fields": [
+                  {"name": "Pays", "value": "${{ matrix.country }}", "inline": true},
+                  {"name": "Environnement", "value": "production", "inline": true}
+                ]
+              }]
+            }' $DISCORD_WEBHOOK
+          fi
+
+      - name: Nettoyage
+        if: always()
+        run: |
+          echo "🧹 Nettoyage des ressources..."
+          docker-compose --env-file .env.${{ matrix.country }} down
+          rm -f .env
+          echo "✅ Nettoyage terminé"

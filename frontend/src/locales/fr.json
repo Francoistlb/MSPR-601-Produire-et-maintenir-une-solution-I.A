@@ -1,0 +1,23 @@
+{
+  "selectCountry": "Sélectionner un pays",
+  "chooseCountry": "Choisir un pays",
+  "loading": "Chargement...",
+  "error": "Erreur",
+  "success": "Succès",
+  "welcome": "Bienvenue",
+  "navigation": "Navigation",
+  "predictions": "Prédictions",
+  "archives": "Archives",
+  "comparisons": "Comparaisons",
+  "help": "Aide",
+  "accessibility": "Accessibilité",
+  "dashboard": "Tableau de bord",
+  "country": "Pays",
+  "viewPredictions": "Voir les prédictions",
+  "viewPredictionsDesc": "Consultez les prédictions générées par le modèle.",
+  "viewArchives": "Voir les données archives",
+  "viewArchivesDesc": "Accédez à l'historique des données archivées.",
+  "viewComparisons": "Voir les comparaisons",
+  "viewComparisonsDesc": "Comparez les différentes données et prédictions.",
+  "logout": "Déconnexion"
+}

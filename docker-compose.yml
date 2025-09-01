@@ -2,10 +2,18 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        COUNTRY: ${COUNTRY}
     expose:
       - "80"
     depends_on:
       - backend
+    environment:
+      - COUNTRY=${COUNTRY}
+      - VITE_COUNTRY=${COUNTRY}
+      - VITE_API_URL=/api
+      - VITE_ENV=${ENV}
+
     networks:
       - default
     restart: unless-stopped
@@ -19,10 +27,27 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    env_file:
-      - .env.docker
     environment:
+      # Variables essentielles
       - TZ=UTC
+      - COUNTRY=${COUNTRY}  # Seule variable nécessaire pour la configuration pays
+      - ENV=${ENV}
+
+      # Configuration de sécurité
+      - SECRET_KEY=${SECRET_KEY}
+      - ALGORITHM=${ALGORITHM}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
+
+      # Configuration base de données
+      - DATABASE_URL=${DATABASE_URL}
+
+      # URLs des données
+      - COVID_DATA_URL=${COVID_DATA_URL}
+      - MPOX_KAGGLE_DATASET=${MPOX_KAGGLE_DATASET}
+
+    volumes:
+      - ./backend:/app 
+      - ./backups:/app/backups
     networks:
       - default
     healthcheck:
@@ -42,7 +67,6 @@ services:
     depends_on:
       - frontend
       - backend
-      - pgadmin
     networks:
       - default
     restart: unless-stopped
@@ -51,10 +75,10 @@ services:
     image: dpage/pgadmin4
     expose:
       - "80"
-    env_file:
-      - .env.docker
     environment:
       - TZ=UTC
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
     volumes:
       - pgadmin-data:/var/lib/pgadmin
     depends_on:
@@ -62,15 +86,18 @@ services:
     networks:
       - default
     restart: unless-stopped
+    profiles:
+      - pgadmin
 
   db:
     image: postgres:14
     ports:
       - "5434:5432"
-    env_file:
-      - .env.docker
     environment:
       - TZ=UTC
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
@@ -86,6 +113,7 @@ services:
 volumes:
   postgres-data:
   pgadmin-data:
+  backup-data:
 
 networks:
   default:

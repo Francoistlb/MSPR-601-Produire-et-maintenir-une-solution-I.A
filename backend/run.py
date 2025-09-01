@@ -7,7 +7,11 @@ sys.path.append(scripts_dir)
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python run.py [etl|dashboard|analysis|importCovid|importMpox|predictions]")
+        print("Usage: python run.py [etl|init|createdb|importCovid|importMpox|predictions]")
+        print("  createdb   - Crée la base de données")
+        print("  init       - Crée toutes les tables")
+        print("  importCovid - Importe les données COVID (nécessite init)")
+        print("  importMpox  - Importe les données Mpox (nécessite init)")
         sys.exit(1)
 
     command = sys.argv[1]
@@ -15,12 +19,12 @@ if __name__ == "__main__":
     if command == "etl":
         import etl_script
         etl_script.main()
-    elif command == "dashboard":
-        import dashboard
-        dashboard.app.run(debug=False, host='127.0.0.1', port=8050, use_reloader=False)
-    elif command == "analysis":
-        import start_analysis
-        start_analysis.main()
+    elif command == "createdb":
+        import create_database
+    elif command == "initdb":
+        import init_db
+        import asyncio
+        asyncio.run(init_db.init_db())
     elif command == "importCovid":
         import import_db
         import_db.insert_f_covid()
@@ -37,5 +41,5 @@ if __name__ == "__main__":
         predictions = generate_predictions.generate_predictions(year)
         print(f"✅ {len(predictions)} prédictions générées avec succès!")
     else:
-        print("Commande non reconnue. Utilisez 'etl', 'dashboard', 'analysis', 'importCovid', 'importMpox' ou 'predictions'.")
+        print("Commande non reconnue. Utilisez 'etl', 'createdb', 'init', 'importCovid', 'importMpox' ou 'predictions'.")
         sys.exit(1)

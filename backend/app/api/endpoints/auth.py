@@ -5,6 +5,7 @@ from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.dependencies import check_rgpd_compliance
 from app.core.database import get_db
 from app.core.security import (
     create_access_token, 
@@ -19,6 +20,7 @@ router = APIRouter()
 
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+@check_rgpd_compliance()
 async def register_user(
     user: UserCreate,
     db: AsyncSession = Depends(get_db)
@@ -37,6 +39,7 @@ async def register_user(
 
 
 @router.post("/login", response_model=Token)
+@check_rgpd_compliance()
 async def login_for_access_token(
     login_data: LoginRequest,
     db: AsyncSession = Depends(get_db)
@@ -72,6 +75,7 @@ async def login_for_access_token(
 
 
 @router.get("/me", response_model=UserRead)
+@check_rgpd_compliance()
 async def read_users_me(current_user = Depends(get_current_active_user)):
     """
     Récupère les informations de l'utilisateur connecté
@@ -91,6 +95,7 @@ async def test_protected_route(current_user = Depends(get_current_active_user)):
 
 
 @router.post("/logout", response_model=MessageResponse)
+@check_rgpd_compliance()
 async def logout_user(request: Request, current_user = Depends(get_current_active_user)):
     """
     Déconnexion de l'utilisateur
