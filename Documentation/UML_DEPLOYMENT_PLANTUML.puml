@@ -1,0 +1,126 @@
+@startuml UML_Deployment_Diagram
+!theme plain
+
+title Diagramme de Déploiement - MSPR Data Science\nCOVID-19 & Mpox avec IA Prédictive
+
+' Définition des couleurs
+!define DOCKER_COLOR #E3F2FD
+!define WEB_COLOR #FFF3E0
+!define API_COLOR #F3E5F5
+!define DB_COLOR #E8F5E8
+!define ML_COLOR #FCE4EC
+
+' Serveur de production
+node "Serveur de Production" as production {
+    
+    ' Docker Host
+    node "Docker Host" as docker_host {
+        
+        ' Nginx Container
+        component "Nginx Container" as nginx_container DOCKER_COLOR {
+            [Nginx Reverse Proxy] as nginx
+            note right of nginx : Port: 8080\nLoad Balancer\nSSL Termination
+        }
+        
+        ' Frontend Container
+        component "Frontend Container" as frontend_container WEB_COLOR {
+            [React Application] as react
+            [Dashboard COVID/Mpox] as dashboard
+            [Visualisations ML] as viz
+            note right of react : Port: 80 (interne)\nVite Build
+            react --> dashboard
+            react --> viz
+        }
+        
+        ' Backend Container
+        component "Backend Container" as backend_container API_COLOR {
+            [FastAPI Server] as api
+            [Endpoints REST] as endpoints
+            
+            ' Modules ML
+            package "Modules IA" as ml_package ML_COLOR {
+                [Modèle Mortalité\nXGBoost] as ml_death
+                [Modèle Nouveaux Cas\nRandom Forest] as ml_cases
+                [Modèle Géographique\nRandom Forest] as ml_geo
+            }
+            
+            note right of api : Port: 8000 (interne)\nAuthentification JWT
+            api --> endpoints
+            api --> ml_death
+            api --> ml_cases
+            api --> ml_geo
+        }
+        
+        ' Database Container
+        component "Database Container" as db_container DB_COLOR {
+            database "PostgreSQL 14" as db
+            [Tables] as tables
+            note right of db : Port: 5434:5432\nSauvegardes quotidiennes
+            db --> tables
+            note right of tables : covid_cases\nmpox_cases\nlocations\npredictions\nusers
+        }
+        
+        ' PgAdmin Container (optionnel)
+        component "PgAdmin Container" as pgadmin_container {
+            [PgAdmin Interface] as pgadmin
+            note right of pgadmin : Port: 80 (interne)\nGestion DB
+        }
+    }
+}
+
+' Utilisateurs externes
+actor "Utilisateur Web" as user
+actor "Administrateur" as admin
+actor "Data Scientist" as data_scientist
+
+' Sources de données externes
+cloud "Sources Externes" as external_sources {
+    [API COVID-19\nJohns Hopkins] as covid_api
+    [Dataset Mpox\nKaggle] as mpox_api
+}
+
+' Stockage persistant
+storage "Volumes Docker" as volumes {
+    folder "postgres-data" as vol_db
+    folder "pgadmin-data" as vol_pgadmin
+    folder "backup-data" as vol_backup
+}
+
+' === CONNEXIONS ===
+
+' Utilisateurs vers Nginx
+user --> nginx : HTTPS:8080
+admin --> nginx : HTTPS:8080  
+data_scientist --> nginx : HTTPS:8080
+
+' Nginx vers services internes
+nginx --> react : Statique
+nginx --> api : API /api/*
+nginx --> pgadmin : Admin /pgadmin/*
+
+' Communications internes
+react --> api : REST API
+api --> db : SQL
+pgadmin --> db : SQL Admin
+
+' Sources de données
+api --> covid_api : HTTP ETL
+api --> mpox_api : HTTP ETL
+
+' Stockage persistant
+db ..> vol_db : Persist
+pgadmin ..> vol_pgladmin : Config
+api ..> vol_backup : Backup
+
+' === LÉGENDES ===
+legend right
+  |= Composant |= Description |
+  | Nginx | Reverse proxy et load balancer |
+  | React | Interface utilisateur moderne |
+  | FastAPI | API REST haute performance |
+  | PostgreSQL | Base de données relationnelle |
+  | Modèles ML | Intelligence artificielle prédictive |
+  | PgAdmin | Interface d'administration DB |
+endlegend
+
+@enduml
