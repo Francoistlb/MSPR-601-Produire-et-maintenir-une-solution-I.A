@@ -1,5 +1,6 @@
 name: CD - Deploiement Continu
 
+# Déclenché après succès du workflow CI
 on:
   workflow_run:
     workflows: ["CI - Lint * Tests * E2E"]
@@ -9,6 +10,7 @@ on:
       - main
   
 jobs:
+  # Job de préparation qui définit les pays à déployer
   prepare:
     runs-on: ubuntu-latest
     outputs:
@@ -16,14 +18,16 @@ jobs:
     steps:
       - id: set-matrix
         run: |
+          # Définition des pays supportés
           echo "matrix={\"country\":[\"usa\",\"france\",\"switzerland\"]}" >> $GITHUB_OUTPUT
 
+  # Job de déploiement pour chaque pays
   deploy:
     needs: prepare
     runs-on: ubuntu-latest
     strategy:
       matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
-      fail-fast: false
+      fail-fast: false  # Continue même si un pays échoue
 
     steps:
       - name: Checkout code
@@ -32,25 +36,37 @@ jobs:
       - name: Configuration pour ${{ matrix.country }}
         run: |
           echo "🚀 Déploiement pour ${{ matrix.country }}"
+          # Copie du fichier d'environnement spécifique au pays
           cp .env.${{ matrix.country }} .env
 
       - name: Build et test
         run: |
+          # Construction des conteneurs
           docker-compose --env-file .env.${{ matrix.country }} build
+          # Démarrage des services
           docker-compose --env-file .env.${{ matrix.country }} up -d
       
       - name: Vérification santé
         run: |
           echo "⏳ Attente démarrage services..."
-          sleep 30
-          curl -f http://localhost:8080/health || exit 1
-          echo "✅ Services démarrés avec succès"
+          # Boucle de vérification avec timeout
+          for i in {1..10}; do
+            if curl -f http://localhost:8080/health; then
+              echo "✅ Services démarrés avec succès"
+              exit 0
+            fi
+            echo "⏳ Tentative $i/10"
+            sleep 10
+          done
+          echo "❌ Timeout - Services non démarrés"
+          exit 1
 
       - name: Notification Discord
-        if: always()
+        if: always()  # Toujours notifier, même en cas d'échec
         env:
           DISCORD_WEBHOOK: ${{ fromJson(secrets.ENV_MSPR).DISCORD_WEBHOOK_URL }}
         run: |
+          # Préparation du message selon le statut
           if [ "${{ job.status }}" == "success" ]; then
             curl -H "Content-Type: application/json" -X POST -d '{
               "embeds": [{
@@ -59,7 +75,8 @@ jobs:
                 "color": 3066993,
                 "fields": [
                   {"name": "Pays", "value": "${{ matrix.country }}", "inline": true},
-                  {"name": "Environnement", "value": "production", "inline": true}
+                  {"name": "Environnement", "value": "production", "inline": true},
+                  {"name": "Date", "value": "'$(date)'", "inline": false}
                 ]
               }]
             }' $DISCORD_WEBHOOK
@@ -71,7 +88,8 @@ jobs:
                 "color": 15158332,
                 "fields": [
                   {"name": "Pays", "value": "${{ matrix.country }}", "inline": true},
-                  {"name": "Environnement", "value": "production", "inline": true}
+                  {"name": "Environnement", "value": "production", "inline": true},
+                  {"name": "Date", "value": "'$(date)'", "inline": false}
                 ]
               }]
             }' $DISCORD_WEBHOOK
@@ -81,6 +99,8 @@ jobs:
         if: always()
         run: |
           echo "🧹 Nettoyage des ressources..."
+          # Arrêt des conteneurs
           docker-compose --env-file .env.${{ matrix.country }} down
+          # Suppression du fichier .env temporaire
           rm -f .env
           echo "✅ Nettoyage terminé"
