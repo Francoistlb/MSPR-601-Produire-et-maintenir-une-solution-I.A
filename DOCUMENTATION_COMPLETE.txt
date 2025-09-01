@@ -438,8 +438,7 @@ server {
 
 5.3 Variables d'environnement
 
-Code : .env
-
+Code 
 # Configuration pays
 COUNTRY=usa
 ENV=development
