@@ -195,6 +195,34 @@
   color: #fff;
 }
 
+.language-switcher {
+  display: flex;
+  align-items: center;
+}
+
+.language-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.language-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+.language-btn:focus {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
 .user-details {
   display: flex;
   flex-direction: column;

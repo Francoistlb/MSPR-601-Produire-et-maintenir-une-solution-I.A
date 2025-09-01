@@ -11,13 +11,12 @@ import react from '@vitejs/plugin-react';
  */
 const getEnvVars = () => {
   // Validation des variables requises
-  if (!process.env.COUNTRY) {
-    throw new Error('❌ COUNTRY environment variable is required');
-  }
+  // Utiliser "usa" par défaut si COUNTRY n'est pas défini
+  const country = process.env.COUNTRY || 'usa';
 
   // env du pays
   const env = {
-    VITE_COUNTRY: process.env.COUNTRY?.toLowerCase(),
+    VITE_COUNTRY: country.toLowerCase(),
     VITE_ENV: process.env.ENV || 'development'
   };
 

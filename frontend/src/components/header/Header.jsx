@@ -1,6 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { NavLink } from 'react-router-dom';
 import { AccessibilityContext, useAuth, useConfig } from '../../context';
+import { useTranslation } from 'react-i18next';
 import './Header.css';
 
 const Header = () => {
@@ -8,6 +9,7 @@ const Header = () => {
   const { darkMode } = useContext(AccessibilityContext);
   const { logout, user } = useAuth();
   const { countryName, isDatavizEnabled } = useConfig();
+  const { t, i18n } = useTranslation();
 
   console.log('Header - Configuration pays:', {
     countryName,
@@ -46,7 +48,7 @@ const Header = () => {
             className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
             onClick={() => setIsMobileMenuOpen(false)}
           >
-            Prédictions
+            {t('predictions')}
           </NavLink>
 
           {/* Visualisation des données selon le pays */}
@@ -57,14 +59,14 @@ const Header = () => {
                 className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                Archives
+                {t('archives')}
               </NavLink>
               <NavLink 
                 to="/comparaisons" 
                 className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                Comparaisons
+                {t('comparisons')}
               </NavLink>
             </>
           )}
@@ -73,7 +75,7 @@ const Header = () => {
             className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
             onClick={() => setIsMobileMenuOpen(false)}
           >
-            Accessibilité
+            {t('accessibility')}
           </NavLink>
         </nav>
 
@@ -83,15 +85,27 @@ const Header = () => {
               {user?.username || user?.email}
             </span>
             <span className="user-country">
-              Pays : {countryName}
+              {t('country')} : {countryName}
             </span>
           </div>
+          
+          {/* Bouton de changement de langue */}
+          <div className="language-switcher">
+            <button 
+              onClick={() => i18n.changeLanguage(i18n.language === 'fr' ? 'en' : 'fr')}
+              className="language-btn"
+              aria-label={i18n.language === 'fr' ? 'Switch to English' : 'Passer en français'}
+            >
+              {i18n.language === 'fr' ? '🇺🇸 EN' : '🇫🇷 FR'}
+            </button>
+          </div>
+          
           <button 
             onClick={logout}
             className="logout-btn"
-            aria-label="Se déconnecter"
+            aria-label={t('logout')}
           >
-            Déconnexion
+            {t('logout')}
           </button>
         </div>
       </div>
