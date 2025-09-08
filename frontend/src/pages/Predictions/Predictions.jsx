@@ -54,8 +54,8 @@ const COUNTRY_COLORS = {
 };
 
 const CONTINENTS = {
-  Europe: ['France', 'Germany', 'Italy', 'Spain', 'United Kingdom', 'Switzerland', 'Belgium', 'Netherlands'],
-  Asie: ['China', 'Japan', 'South Korea', 'India', 'Vietnam', 'Thailand', 'Indonesia'],
+  Europe: ['France', 'Albania', 'Germany', 'Italy', 'Spain', 'United Kingdom', 'Switzerland', 'Belgium', 'Netherlands'],
+  Asie: ['Afghanistan', 'China', 'Japan', 'South Korea', 'India', 'Vietnam', 'Thailand', 'Indonesia'],
   Amérique: ['United States', 'Canada', 'Brazil', 'Mexico', 'Argentina', 'Chile'],
   Afrique: ['South Africa', 'Egypt', 'Morocco', 'Nigeria', 'Kenya', 'Ethiopia'],
   Océanie: ['Australia', 'New Zealand', 'Fiji', 'Papua New Guinea']
@@ -152,9 +152,9 @@ const Predictions = () => {
             temp[month].count += 1;
           });
           Object.entries(temp).forEach(([m, d]) => {
-            monthlyCases[country][m] = d.totalCases / d.count;
-            monthlyDeaths[country][m] = d.totalDeaths / d.count;
-            monthlySpread[country][m] = d.totalSpread / d.count;
+            monthlyCases[country][m] = Math.round(d.totalCases);
+            monthlyDeaths[country][m] = Math.round(d.totalDeaths);
+            monthlySpread[country][m] = Math.round(d.totalSpread);
           });
         });
 
@@ -245,8 +245,8 @@ const Predictions = () => {
     }
   });
 
-  const casesOpts = mkOptions('Moyenne mensuelle des nouveaux cas COVID‑19 prédits (2025)', 'nouveaux cas / jour');
-  const deathsOpts = mkOptions('Moyenne mensuelle des décès COVID‑19 prédits (2025)', 'décès / jour');
+  const casesOpts = mkOptions('Nombre de nouveaux cas COVID‑19 prédits par mois (2025)', 'nouveaux cas');
+  const deathsOpts = mkOptions('Nombre de décès COVID‑19 prédits par mois (2025)', 'décès');
 
   const spreadOpts = {
     indexAxis: 'y',

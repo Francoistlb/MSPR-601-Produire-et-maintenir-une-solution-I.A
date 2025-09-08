@@ -1,17 +1,17 @@
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 import os
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
 # Charger les variables d'environnement
-# load_dotenv()
+load_dotenv()
 
-# URL de connexion SQLite (contournement du problème .env)
-DATABASE_URL = "sqlite+aiosqlite:///./dev.db"
+# URL de connexion PostgreSQL (modifie selon ta config)
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Vérifier si DATABASE_URL est bien chargé
-# if not DATABASE_URL:
-#     raise ValueError("DATABASE_URL n'est pas défini dans le fichier .env")
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL n'est pas défini dans le fichier .env")
 
 # Créer l'engine SQLAlchemy
 engine = create_async_engine(DATABASE_URL, echo=True)
