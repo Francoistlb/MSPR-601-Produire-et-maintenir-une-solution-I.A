@@ -4,6 +4,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import frLocale from 'date-fns/locale/fr';
+import { useTranslation } from 'react-i18next';
 
 // Types de prédiction disponibles
 export const PREDICTION_TYPES = {
@@ -30,6 +31,8 @@ const FilterBar = ({
   onStartDateChange,
   onEndDateChange
 }) => {
+  const { t } = useTranslation();
+  
   return (
     <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', flexWrap: 'wrap' }}>
       {/* Type de prédiction */}
@@ -50,11 +53,11 @@ const FilterBar = ({
 
       {/* Sélection du pays */}
       <FormControl style={{ minWidth: 200 }}>
-        <InputLabel>Pays</InputLabel>
+        <InputLabel>{t('Pays')}</InputLabel>
         <Select
           value={selectedCountry || ''}
           onChange={(e) => onCountryChange(e.target.value)}
-          label="Pays"
+          label={t('Pays')}
         >
           {countries.map((country) => (
             <MenuItem key={country.location_id} value={country}>

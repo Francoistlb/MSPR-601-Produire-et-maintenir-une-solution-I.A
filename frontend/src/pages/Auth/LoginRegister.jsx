@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context';
+import { useTranslation } from 'react-i18next';
 import { 
   Container, 
   Paper, 
@@ -25,6 +26,7 @@ const LoginRegister = () => {
   const [error, setError] = useState('');
 
   const { login, register } = useAuth();
+  const { t } = useTranslation();
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -217,7 +219,7 @@ const LoginRegister = () => {
                 }
               }}
             >
-              {loading ? 'Chargement...' : (activeTab === 0 ? 'Se connecter' : 'S\'inscrire')}
+              {loading ? t('Chargement...') : (activeTab === 0 ? 'Se connecter' : 'S\'inscrire')}
             </Button>
           </form>
         </Paper>

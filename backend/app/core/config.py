@@ -33,6 +33,12 @@ class Settings:
             rgpd=False,
             multi_language=True,
             languages=["fr", "de", "it"]
+        ),
+        "italy": CountryConfig(
+            technical_api=False,
+            rgpd=True,
+            multi_language=False,
+            languages=["it"]
         )
     }
     

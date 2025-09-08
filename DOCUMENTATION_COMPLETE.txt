@@ -1,0 +1,580 @@
+================================================================================
+                    DOCUMENTATION TECHNIQUE COMPLÈTE - ANALYSE IT 2
+================================================================================
+
+I. VUE D'ENSEMBLE DU PROJET
+================================================================================
+
+Contexte : Projet réalisé en groupe dans le cadre d'une mission simulée pour l'OMS
+Objectif : Mise en place d'une chaîne complète de traitement, d'analyse et de 
+visualisation de données sanitaires (COVID-19 et Mpox)
+Technologies principales : Python, FastAPI, React, PostgreSQL, Docker, i18n
+
+II. ARCHITECTURE TECHNIQUE
+================================================================================
+
+2.1 Modèle de données (UML)
+
+Le projet suit une architecture en étoile typique des entrepôts de données :
+
+d_location (Dimension géographique)
+    ├── location_id (PK)
+    └── location_name
+    
+f_covid (Faits COVID-19)
+    ├── covid_fact_id (PK)
+    ├── date
+    ├── location_id (FK → d_location)
+    ├── total_cases, new_cases
+    ├── total_deaths, new_deaths
+    ├── icu_patients, hosp_patients
+    └── total_vaccinations, people_vaccinated
+
+f_mpox (Faits Mpox)
+    ├── mpox_fact_id (PK)
+    ├── date
+    ├── location_id (FK → d_location)
+    ├── total_cases, new_cases
+    ├── total_deaths, new_deaths
+    └── métriques per million
+
+f_predi_covid (Prédictions)
+    ├── pred_id (PK)
+    ├── date_predite
+    ├── location_id (FK → d_location)
+    ├── indicateur
+    └── valeur_predite
+
+users (Authentification)
+    ├── user_id (PK)
+    ├── username, email
+    └── password_hash
+
+2.2 Architecture des services
+
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │    Backend      │    │   Base de       │
+│   React + i18n  │◄──►│   FastAPI       │◄──►│   données       │
+│   Port 8080     │    │   Port 8000     │    │   PostgreSQL    │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         ▲                       ▲                       ▲
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+                    ┌─────────────────┐
+                    │     Nginx       │
+                    │   Reverse Proxy │
+                    │   Port 8080     │
+                    └─────────────────┘
+
+III. BACKEND - API FASTAPI
+================================================================================
+
+3.1 Modèles SQLAlchemy
+
+Code : backend/app/models/models.py
+
+from sqlalchemy import Column, Integer, String, Date, DateTime, Numeric, ForeignKey, func, Boolean
+from app.core.database import Base
+
+class DLocation(Base):
+    """Dimension géographique pour stocker les localisations uniques"""
+    __tablename__ = 'd_location'
+    
+    location_id = Column(Integer, primary_key=True, autoincrement=True)
+    location_name = Column(String(100), nullable=False, unique=True)  
+
+class FCovid(Base):
+    """Table de faits principale pour les données COVID"""
+    __tablename__ = 'f_covid'
+    
+    covid_fact_id = Column(Integer, primary_key=True, autoincrement=True)
+    date = Column(Date, nullable=False)
+    location_id = Column(Integer, ForeignKey('d_location.location_id'), nullable=False)
+    
+    # Métriques de cas et décès
+    total_cases = Column(Numeric(15, 2))
+    new_cases = Column(Numeric(15, 2))
+    total_deaths = Column(Numeric(15, 2))
+    new_deaths = Column(Numeric(15, 2))
+    
+    # Métriques hospitalières
+    icu_patients = Column(Numeric(15, 2))
+    hosp_patients = Column(Numeric(15, 2))
+    
+    # Métriques de vaccination
+    total_vaccinations = Column(Numeric(15, 2))
+    people_vaccinated = Column(Numeric(15, 2))
+    
+    # Métadonnées
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+3.2 Configuration par pays
+
+Code : backend/app/core/config.py
+
+class CountryConfig:
+    def __init__(self, technical_api: bool = True, rgpd: bool = False, 
+                 multi_language: bool = False, languages: List[str] = None):
+        self.technical_api_enabled = technical_api
+        self.rgpd_mode = rgpd
+        self.multi_language = multi_language
+        self.supported_languages = languages or ["en"]
+
+class Settings:
+    # Configuration fixe par pays
+    COUNTRY_CONFIGS: Dict[str, CountryConfig] = {
+        "usa": CountryConfig(
+            technical_api=True,      # API technique activée
+            rgpd=False,              # Pas de contraintes RGPD
+            multi_language=False,    # Anglais uniquement
+            languages=["en"]
+        ),
+        "france": CountryConfig(
+            technical_api=False,     # API technique désactivée
+            rgpd=True,               # Contraintes RGPD strictes
+            multi_language=False,    # Français uniquement
+            languages=["fr"]
+        ),
+        "switzerland": CountryConfig(
+            technical_api=False,     # API technique désactivée
+            rgpd=False,              # Contraintes RGPD modérées
+            multi_language=True,     # Multilingue
+            languages=["fr", "de", "it"]
+        )
+    }
+
+3.3 Endpoints API avec RGPD
+
+Code : backend/app/api/endpoints/locations.py
+
+from app.api.dependencies import check_rgpd_compliance
+
+@router.get("/", response_model=List[DLocationRead])
+@check_rgpd_compliance()  # Vérification RGPD automatique
+async def liste_des_pays_fc(
+    skip: int = 0, 
+    limit: int = 100, 
+    db: AsyncSession = Depends(get_db)
+):
+    locations = await liste_pays(db, skip=skip, limit=limit)
+    return locations
+
+@router.post("/", response_model=DLocationRead, status_code=status.HTTP_201_CREATED)
+@check_rgpd_compliance()
+async def creer_pays_fc(
+    location: DLocationCreate, 
+    db: AsyncSession = Depends(get_db)
+):
+    # Vérifier si la location existe déjà
+    db_location = await obtenir_pays_par_nom(db, location.location_name)
+    if db_location:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Le pays '{location.location_name}' existe déjà"
+        )
+    
+    return await creer_pays(db, location)
+
+IV. FRONTEND - APPLICATION REACT AVEC i18n
+================================================================================
+
+4.1 Configuration i18n
+
+Code : frontend/src/i18n.js
+
+import i18n from "i18next";
+import { initReactI18next } from "react-i18next";
+import en from "./locales/en.json";
+import fr from "./locales/fr.json";
+
+i18n
+  .use(initReactI18next)
+  .init({
+    resources: {
+      en: { translation: en },
+      fr: { translation: fr },
+    },
+    lng: (localStorage.getItem("lang") || "fr"),  # Français par défaut
+    fallbackLng: "en",                           # Anglais en fallback
+    interpolation: { escapeValue: false },
+  });
+
+export default i18n;
+
+4.2 Fichiers de traduction
+
+Code : frontend/src/locales/fr.json
+
+{
+  "selectCountry": "Sélectionner un pays",
+  "chooseCountry": "Choisir un pays",
+  "loading": "Chargement...",
+  "error": "Erreur",
+  "success": "Succès",
+  "welcome": "Bienvenue",
+  "navigation": "Navigation",
+  "predictions": "Prédictions",
+  "archives": "Archives",
+  "comparisons": "Comparaisons",
+  "help": "Aide",
+  "accessibility": "Accessibilité",
+  "dashboard": "Tableau de bord",
+  "country": "Pays",
+  "viewPredictions": "Voir les prédictions",
+  "viewPredictionsDesc": "Consultez les prédictions générées par le modèle.",
+  "viewArchives": "Voir les données archives",
+  "viewArchivesDesc": "Accédez à l'historique des données archivées.",
+  "viewComparisons": "Voir les comparaisons",
+  "viewComparisonsDesc": "Comparez les différentes données et prédictions.",
+  "logout": "Déconnexion"
+}
+
+4.3 Composant Header avec bouton de langue
+
+Code : frontend/src/components/header/Header.jsx
+
+import { useTranslation } from 'react-i18next';
+
+const Header = () => {
+  const { t, i18n } = useTranslation();
+  
+  return (
+    <header className={`modern-header ${darkMode ? 'dark' : ''}`} role="banner">
+      <div className="header-container">
+        {/* Logo et navigation */}
+        <div className="header-logo">
+          <span className="logo-text">Analyze IT 2</span>
+        </div>
+        
+        <nav className="header-nav">
+          <NavLink to="/predictions" className="nav-link">
+            {t('predictions')}  {/* Traduction automatique */}
+          </NavLink>
+          
+          {isDatavizEnabled && (
+            <>
+              <NavLink to="/archives" className="nav-link">
+                {t('archives')}
+              </NavLink>
+              <NavLink to="/comparaisons" className="nav-link">
+                {t('comparisons')}
+              </NavLink>
+            </>
+          )}
+        </nav>
+
+        {/* Informations utilisateur et bouton de langue */}
+        <div className="header-user-info">
+          <div className="user-details">
+            <span className="user-name">
+              {user?.username || user?.email}
+            </span>
+            <span className="user-country">
+              {t('country')} : {countryName}
+            </span>
+          </div>
+          
+          {/* Bouton de changement de langue */}
+          <div className="language-switcher">
+            <button 
+              onClick={() => i18n.changeLanguage(i18n.language === 'fr' ? 'en' : 'fr')}
+              className="language-btn"
+              aria-label={i18n.language === 'fr' ? 'Switch to English' : 'Passer en français'}
+            >
+              {i18n.language === 'fr' ? '🇺🇸 EN' : '🇫🇷 FR'}
+            </button>
+          </div>
+          
+          <button onClick={logout} className="logout-btn">
+            {t('logout')}
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+};
+
+4.4 Configuration Vite avec variables d'environnement
+
+Code : frontend/vite.config.js
+
+const getEnvVars = () => {
+  // Validation des variables requises
+  // Utiliser "usa" par défaut si COUNTRY n'est pas défini
+  const country = process.env.COUNTRY || 'usa';
+
+  // env du pays
+  const env = {
+    VITE_COUNTRY: country.toLowerCase(),
+    VITE_ENV: process.env.ENV || 'development'
+  };
+
+  return env;
+};
+
+export default defineConfig(({ mode }) => {
+  const envVars = getEnvVars();
+  
+  return {
+    plugins: [react()],
+    server: {
+      proxy: {
+        '/api': {
+          target: 'http://localhost:8000',
+          changeOrigin: true
+        }
+      }
+    },
+    define: {
+      // Définir le pays choisi par l'utilisateur
+      'import.meta.env.VITE_COUNTRY': JSON.stringify(envVars.VITE_COUNTRY),
+      'import.meta.env.VITE_ENV': JSON.stringify(envVars.VITE_ENV)
+    }
+  };
+});
+
+V. DOCKER - CONTAINERISATION ET DÉPLOIEMENT
+================================================================================
+
+5.1 Docker Compose principal
+
+Code : docker-compose.yml
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        COUNTRY: ${COUNTRY}  # Variable d'environnement pour la configuration
+    expose:
+      - "80"
+    depends_on:
+      - backend
+    environment:
+      - COUNTRY=${COUNTRY}
+      - VITE_COUNTRY=${COUNTRY}
+      - VITE_API_URL=/api
+      - VITE_ENV=${ENV}
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    expose:
+      - "8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - COUNTRY=${COUNTRY}  # Configuration pays
+      - DATABASE_URL=${DATABASE_URL}
+      - SECRET_KEY=${SECRET_KEY}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "8080:80"  # Port externe accessible
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - frontend
+      - backend
+
+  db:
+    image: postgres:14
+    ports:
+      - "5434:5432"
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+
+5.2 Configuration Nginx (Reverse Proxy)
+
+Code : nginx.conf
+
+server {
+    listen 80;
+    client_max_body_size 200M;
+
+    # Frontend React
+    location / {
+        proxy_pass http://frontend/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    # Backend API FastAPI
+    location /api/ {
+        proxy_pass http://backend:8000/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    # Documentation Swagger
+    location /docs {
+        proxy_pass http://backend:8000/docs;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    # PgAdmin (optionnel)
+    location /pgadmin/ {
+        proxy_pass http://pgadmin:80/;
+        proxy_set_header X-Script-Name /pgadmin;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+
+5.3 Variables d'environnement
+
+Code 
+# Configuration pays
+COUNTRY=usa
+ENV=development
+
+# Base de données
+DATABASE_URL=postgresql+asyncpg://postgres:password@db:5432/msprdatascience
+POSTGRES_DB=msprdatascience
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=password
+
+# Sécurité
+SECRET_KEY=your-secret-key-here
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# Sources de données
+COVID_DATA_URL=https://covid.ourworldindata.org/data/owid-covid-data.csv
+MPOX_KAGGLE_DATASET=utkarshx27/mpox-monkeypox-data
+
+# PgAdmin (optionnel)
+PGADMIN_DEFAULT_EMAIL=admin@exemple.com
+PGADMIN_DEFAULT_PASSWORD=adminTest123
+
+VI. SCRIPT ETL ET INITIALISATION
+================================================================================
+
+6.1 Initialisation de la base de données
+
+Code : backend/scripts/init_db.py
+
+import asyncio
+from app.core.database import Base, engine
+from app.models import models
+
+async def init_db():
+    """Crée toutes les tables de la base de données"""
+    try:
+        # Créer les tables
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        print("✅ Création des tables terminée.")
+            
+    except Exception as e:
+        print(f"❌ Erreur lors de l'initialisation de la base : {e}")
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(init_db())
+    except Exception as e:
+        print(f"❌ Erreur lors de l'initialisation de la base : {e}")
+
+VII. FONCTIONNALITÉS PRINCIPALES
+================================================================================
+
+7.1 Configuration par pays
+
+- USA : API technique activée, pas de RGPD, anglais uniquement
+- France : API technique désactivée, RGPD strict, français uniquement  
+- Suisse : API technique désactivée, RGPD modéré, multilingue (FR/DE/IT)
+- Italie : API technique désactivée, RGPD strict, italien uniquement
+
+7.2 Internationalisation (i18n)
+
+- Langues supportées : Français, Anglais, Allemand, Italien
+- Détection automatique : Langue par défaut selon le pays
+- Traduction dynamique : Changement de langue sans rechargement
+- Persistance : Sauvegarde de la préférence en localStorage
+- Fallback : Retour automatique à l'anglais si traduction manquante
+- Interface adaptative : Menu déroulant pour pays multilingues (Suisse)
+
+7.3 Sécurité et RGPD
+
+- Authentification : Système de connexion avec JWT
+- Vérification RGPD : Décorateurs automatiques sur les endpoints
+- Configuration pays : Règles RGPD adaptées selon le pays
+
+VIII. DÉPLOIEMENT ET UTILISATION
+================================================================================
+
+8.1 Lancement avec Docker
+
+# Configuration USA
+docker-compose --env-file .env.usa up -d
+
+# Configuration France  
+docker-compose --env-file .env.france up -d
+
+# Configuration Suisse
+docker-compose --env-file .env.switzerland up -d
+
+# Configuration Italie
+docker-compose --env-file env.italy up -d
+
+8.2 Accès aux services
+
+- Frontend : http://localhost:8080/
+- API Backend : http://localhost:8080/api/
+- Documentation Swagger : http://localhost:8080/docs
+- Base de données : localhost:5434
+- PgAdmin : http://localhost:8080/pgadmin/
+
+8.3 Variables d'environnement requises
+
+# Obligatoire
+COUNTRY=usa|france|switzerland|italy
+
+# Optionnelles (avec valeurs par défaut)
+ENV=development
+DATABASE_URL=postgresql://...
+SECRET_KEY=your-secret-key
+
+IX. AVANTAGES DE L'ARCHITECTURE
+================================================================================
+
+1. Modularité : Configuration par pays indépendante
+2. Scalabilité : Services Docker isolés et extensibles
+3. Maintenabilité : Code structuré avec séparation des responsabilités
+4. Flexibilité : Support multilingue et configuration dynamique
+5. Sécurité : Vérifications RGPD automatiques et authentification
+6. Portabilité : Déploiement identique sur tous les environnements
+
+X. ÉVOLUTIONS FUTURES
+================================================================================
+
+- Nouvelles langues : Ajout facile via les fichiers de traduction
+- Nouveaux pays : Configuration simple dans CountryConfig
+- Nouvelles sources de données : Extension du pipeline ETL
+- Nouvelles visualisations : Composants React modulaires
+- Monitoring : Intégration de métriques et alertes
+
+================================================================================
+                    FIN DE LA DOCUMENTATION
+================================================================================
+
+Cette documentation couvre l'ensemble du projet avec captures de code détaillées. 
+Chaque section peut être approfondie selon les besoins spécifiques.
+
+
+
