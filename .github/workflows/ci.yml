@@ -1,5 +1,6 @@
 name: CI – Lint • Tests • E2E
 
+# Déclenché sur push et pull request
 on:
   push:       { branches: [main, develop] }
   pull_request:
@@ -9,6 +10,7 @@ jobs:
   quality-test-e2e:
     runs-on: ubuntu-latest
 
+    # Service PostgreSQL pour les tests
     services:
       postgres:
         image: postgres:14
@@ -25,7 +27,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-
+    # Configuration Python
     - name: Set up Python
       uses: actions/setup-python@v4
       with: { python-version: "3.12" }
@@ -34,50 +36,60 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r backend/requirements.txt
-        pip install flake8 black pytest
+        pip install flake8 black pytest safety  # Ajout de safety pour vérifier les dépendances
 
+    # Vérification des dépendances Python
+    - name: Check Python dependencies
+      run: |
+        echo "🔍 Vérification des dépendances Python..."
+        safety check
 
-
-
-    # ---------- NODE / Tests Cypress ----------
+    # Configuration Node.js
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
         node-version: "20"
         cache: "npm"
         cache-dependency-path: frontend/package-lock.json
+
+    # Analyse du code Python
     - name: Python Lint & Format
       run: |
+        echo "🐍 Analyse du code Python..."
         flake8 backend/
         black --check backend/
 
-    # ──────────────── ANALYSE DE CODE JS / REACT ────────────────
-
-    - name: Install JS deps (avec eslint & prettier)
+    # Analyse du code JavaScript/React
+    - name: Install JS deps
       working-directory: frontend
       run: |
+        echo "📦 Installation des dépendances JS..."
         npm ci
-        # si eslint / prettier ne sont pas déjà dans package.json :
-        # npm install --save-dev eslint prettier
 
-    - name: Lint JS (eslint)
+    - name: Lint JS
       working-directory: frontend
-      run: npx eslint "src/**/*.{js,jsx,ts,tsx}" --max-warnings=0
+      run: |
+        echo "🔍 Analyse du code JS..."
+        npx eslint "src/**/*.{js,jsx,ts,tsx}" --max-warnings=0
 
-    - name: Format check JS (prettier)
+    - name: Format check JS
       working-directory: frontend
-      run: npx prettier --check "src/**/*.{js,jsx,ts,tsx,json,css,md}"
+      run: |
+        echo "✨ Vérification du formatage JS..."
+        npx prettier --check "src/**/*.{js,jsx,ts,tsx,json,css,md}"
 
-    # ──────────────── TESTS BACK-END & E2E ────────────────
+    # Tests Backend
     - name: Run PyTest
       env:
         ENV: test
         DATABASE_URL: sqlite+aiosqlite:///./test.db
         COVID_DATA_URL: ${{ fromJson(secrets.ENV_MSPR).COVID_DATA_URL }}
         MPOX_KAGGLE_DATASET: ${{ fromJson(secrets.ENV_MSPR).MPOX_KAGGLE_DATASET }}
-      run: pytest --maxfail=1 --disable-warnings -q
+      run: |
+        echo "🧪 Exécution des tests Python..."
+        pytest --maxfail=1 --disable-warnings -q
 
-    # ──────────────── STACK DOCKER + TESTS CYPRESS ────────────────
+    # Tests E2E avec Cypress
     - name: Build & start docker-compose
       env:
         COUNTRY: usa
@@ -88,13 +100,20 @@ jobs:
         DATABASE_URL: ${{ fromJson(secrets.ENV_MSPR).DATABASE_URL }}
         COVID_DATA_URL: ${{ fromJson(secrets.ENV_MSPR).COVID_DATA_URL }}
         MPOX_KAGGLE_DATASET: ${{ fromJson(secrets.ENV_MSPR).MPOX_KAGGLE_DATASET }}
-      run: docker-compose up -d --build
-
-    - name: Wait for backend to be ready
       run: |
-        for i in {1..30}; do
-          curl -sSf http://localhost:8080/api/health && break
-          echo "⏳ backend pas prêt ($i/30)"; sleep 3
+        echo "🐳 Démarrage des conteneurs..."
+        docker-compose up -d --build
+
+    - name: Wait for backend
+      run: |
+        echo "⏳ Attente du backend..."
+        for i in {1..10}; do
+          if curl -sSf http://localhost:8080/api/health; then
+            echo "✅ Backend prêt"
+            break
+          fi
+          echo "⏳ Tentative $i/10"
+          sleep 10
         done
 
     - name: Cypress run
@@ -106,10 +125,11 @@ jobs:
       with:
         working-directory: frontend
         browser: chrome
-        start: ""               # serveur déjà lancé
+        start: ""
         wait-on: "http://localhost:8080/api/health"
 
-    - name: Upload Cypress artifacts (si échec)
+    # Sauvegarde des artifacts Cypress en cas d'échec
+    - name: Upload Cypress artifacts
       if: failure()
       uses: actions/upload-artifact@v4
       with:
@@ -118,41 +138,42 @@ jobs:
           frontend/cypress/videos
           frontend/cypress/screenshots
 
+    # Notification Discord
     - name: Discord notification
       if: always()
       env:
         DISCORD_WEBHOOK: ${{ fromJson(secrets.ENV_MSPR).DISCORD_WEBHOOK_URL }}
       run: |
-          if [ "${{ job.status }}" == "success" ]; then
-            curl -H "Content-Type: application/json" \
-                -X POST \
-                -d '{
-                  "embeds": [{
-                    "title": "✅ Build Success",
-                    "description": "Tests passed successfully! 🎉",
-                    "color": 3066993,
-                    "fields": [
-                      {"name": "Branch", "value": "${{ github.ref_name }}", "inline": true},
-                      {"name": "Commit", "value": "`${{ github.sha }}`", "inline": true},
-                      {"name": "Author", "value": "${{ github.actor }}", "inline": true}
-                    ]
-                  }]
-                }' \
-                $DISCORD_WEBHOOK
-          else
-            curl -H "Content-Type: application/json" \
-                -X POST \
-                -d '{
-                  "embeds": [{
-                    "title": "❌ Build Failed",
-                    "description": "Tests failed! 💥",
-                    "color": 15158332,
-                    "fields": [
-                      {"name": "Branch", "value": "${{ github.ref_name }}", "inline": true},
-                      {"name": "Commit", "value": "`${{ github.sha }}`", "inline": true},
-                      {"name": "Author", "value": "${{ github.actor }}", "inline": true}
-                    ]
-                  }]
-                }' \
-                $DISCORD_WEBHOOK
-          fi
+        if [ "${{ job.status }}" == "success" ]; then
+          curl -H "Content-Type: application/json" \
+              -X POST \
+              -d '{
+                "embeds": [{
+                  "title": "✅ Tests réussis",
+                  "description": "Tous les tests sont passés ! 🎉",
+                  "color": 3066993,
+                  "fields": [
+                    {"name": "Branch", "value": "${{ github.ref_name }}", "inline": true},
+                    {"name": "Commit", "value": "`${{ github.sha }}`", "inline": true},
+                    {"name": "Auteur", "value": "${{ github.actor }}", "inline": true}
+                  ]
+                }]
+              }' \
+              $DISCORD_WEBHOOK
+        else
+          curl -H "Content-Type: application/json" \
+              -X POST \
+              -d '{
+                "embeds": [{
+                  "title": "❌ Tests échoués",
+                  "description": "Certains tests ont échoué 💥",
+                  "color": 15158332,
+                  "fields": [
+                    {"name": "Branch", "value": "${{ github.ref_name }}", "inline": true},
+                    {"name": "Commit", "value": "`${{ github.sha }}`", "inline": true},
+                    {"name": "Auteur", "value": "${{ github.actor }}", "inline": true}
+                  ]
+                }]
+              }' \
+              $DISCORD_WEBHOOK
+        fi

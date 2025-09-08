@@ -38,7 +38,6 @@
 | USA | Anglais | ❌ | ✅ | ❌ |
 | France | Français | ✅ | ❌ | ❌ |
 | Suisse | FR/DE/IT | ❌ | ❌ | ✅ |
-| Italie | Italien | ✅ | ❌ | ❌ |
 
 ## 🚀 Comment utiliser
 
@@ -54,8 +53,6 @@ docker-compose --env-file .env.usa up -d
 # Suisse (Multilingue FR/DE/IT)
 docker-compose --env-file .env.switzerland up -d
 
-# Italie (Italien uniquement)
-docker-compose --env-file env.italy up -d
 ```
 
 ### Interface utilisateur
