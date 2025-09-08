@@ -1,7 +1,11 @@
 import React from 'react';
 import { FaQuestionCircle } from 'react-icons/fa';
+import { useTranslation } from 'react-i18next';
 
-const Help = () => (
+const Help = () => {
+  const { t } = useTranslation();
+  
+  return (
   <main style={{ maxWidth: 800, margin: 'auto', padding: '1rem' }}>
     <h1 tabIndex="0"><FaQuestionCircle style={{verticalAlign: 'middle', marginRight: 8}} />Aide & Guide utilisateur</h1>
     <section>
@@ -15,7 +19,7 @@ const Help = () => (
       </ul>
     </section>
     <section>
-      <h2>Accessibilité</h2>
+      <h2>{t('Accessibilité')}</h2>
       <ul>
         <li>Navigation au clavier : utilisez Tab et Entrée pour naviguer et activer les boutons/liens.</li>
         <li>Compatibilité avec les lecteurs d'écran (VoiceOver, NVDA, JAWS...)</li>
@@ -35,6 +39,7 @@ const Help = () => (
       <p>Contactez l'équipe technique ou consultez la documentation fournie.</p>
     </section>
   </main>
-);
+  );
+};
 
 export default Help; 

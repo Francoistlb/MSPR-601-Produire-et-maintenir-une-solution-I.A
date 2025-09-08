@@ -1,10 +1,12 @@
 import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { AccessibilityContext } from '../../context';
+import { useTranslation } from 'react-i18next';
 import './Footer.css';
 
 const Footer = () => {
   const { increaseFont, decreaseFont, resetFont, darkMode, toggleDarkMode } = useContext(AccessibilityContext);
+  const { t } = useTranslation();
   
   return (
     <footer className={`modern-footer ${darkMode ? 'dark' : ''}`} role="contentinfo">
@@ -14,8 +16,8 @@ const Footer = () => {
             <div className="footer-brand">Analyze IT 2 - Tableau de bord</div>
             <div>Projet MSPR-502 &copy; {new Date().getFullYear()}</div>
             <div className="footer-links">
-              <Link to="/aide" className="footer-link">Aide</Link>
-              <Link to="/accessibilite" className="footer-link">Accessibilité</Link>
+              <Link to="/aide" className="footer-link">{t('Aide')}</Link>
+              <Link to="/accessibilite" className="footer-link">{t('Accessibilité')}</Link>
               <a href="mailto:support@analyzit.org" className="footer-link">Contact</a>
             </div>
           </div>

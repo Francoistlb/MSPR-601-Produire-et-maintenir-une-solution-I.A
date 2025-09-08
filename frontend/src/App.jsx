@@ -1,5 +1,7 @@
 import React, { useContext, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { I18nextProvider, useTranslation } from 'react-i18next';
+import i18n from './i18n';
 import Accessibility from './pages/Accessibility/Accessibility';
 import Help from './pages/Help/Help';
 import Footer from './components/footer/Footer';
@@ -24,9 +26,10 @@ function AppRoutes() {
   const { isAuthenticated, loading } = useAuth();
   const { fontSize, darkMode } = useContext(AccessibilityContext);
   const { isDatavizEnabled } = useConfig();
+  const { t } = useTranslation();
 
   if (loading) {
-    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>Chargement...</div>;
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>{t('Chargement...')}</div>;
   }
 
   if (!isAuthenticated) {
@@ -79,15 +82,17 @@ function AppRoutes() {
  */
 function App() {
   return (
-    <AuthProvider>
-      <AccessibilityProvider>
-        <ConfigProvider>
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </ConfigProvider>
-      </AccessibilityProvider>
-    </AuthProvider>
+    <I18nextProvider i18n={i18n}>
+      <AuthProvider>
+        <AccessibilityProvider>
+          <ConfigProvider>
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </ConfigProvider>
+        </AccessibilityProvider>
+      </AuthProvider>
+    </I18nextProvider>
   );
 }
 

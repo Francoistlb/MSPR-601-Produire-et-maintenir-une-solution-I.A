@@ -27,6 +27,15 @@ docker-compose --env-file .env.switzerland up -d --build
 docker-compose --env-file .env.switzerland logs
 ```
 
+## Italie
+```bash
+# Démarrer les services (Italie)
+docker-compose --env-file env.italy up -d --build
+
+# Voir les logs (Italie)
+docker-compose --env-file env.italy logs
+```
+
 ## Commandes générales
 ```bash
 # Arrêter tous les services
@@ -55,6 +64,7 @@ docker-compose exec backend python3 scripts/import_db.py importMpox
   - Mot de passe : adminTest123
 
 ## Fonctionnalités par pays
-- **France** : RGPD activé, API technique désactivée
-- **USA** : Toutes les fonctionnalités activées
+- **France** : RGPD activé, API technique désactivée, Français uniquement
+- **USA** : Toutes les fonctionnalités activées, Anglais uniquement
 - **Suisse** : Multi-langues activé (fr, de, it), API technique désactivée
+- **Italie** : RGPD activé, API technique désactivée, Italien uniquement

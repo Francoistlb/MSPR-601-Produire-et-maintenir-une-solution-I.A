@@ -498,13 +498,16 @@ VII. FONCTIONNALITÉS PRINCIPALES
 - USA : API technique activée, pas de RGPD, anglais uniquement
 - France : API technique désactivée, RGPD strict, français uniquement  
 - Suisse : API technique désactivée, RGPD modéré, multilingue (FR/DE/IT)
+- Italie : API technique désactivée, RGPD strict, italien uniquement
 
 7.2 Internationalisation (i18n)
 
-- Langues supportées : Français (défaut) et Anglais
+- Langues supportées : Français, Anglais, Allemand, Italien
+- Détection automatique : Langue par défaut selon le pays
 - Traduction dynamique : Changement de langue sans rechargement
 - Persistance : Sauvegarde de la préférence en localStorage
 - Fallback : Retour automatique à l'anglais si traduction manquante
+- Interface adaptative : Menu déroulant pour pays multilingues (Suisse)
 
 7.3 Sécurité et RGPD
 
@@ -526,6 +529,9 @@ docker-compose --env-file .env.france up -d
 # Configuration Suisse
 docker-compose --env-file .env.switzerland up -d
 
+# Configuration Italie
+docker-compose --env-file env.italy up -d
+
 8.2 Accès aux services
 
 - Frontend : http://localhost:8080/
@@ -537,7 +543,7 @@ docker-compose --env-file .env.switzerland up -d
 8.3 Variables d'environnement requises
 
 # Obligatoire
-COUNTRY=usa|france|switzerland
+COUNTRY=usa|france|switzerland|italy
 
 # Optionnelles (avec valeurs par défaut)
 ENV=development
@@ -569,3 +575,6 @@ X. ÉVOLUTIONS FUTURES
 
 Cette documentation couvre l'ensemble du projet avec captures de code détaillées. 
 Chaque section peut être approfondie selon les besoins spécifiques.
+
+
+

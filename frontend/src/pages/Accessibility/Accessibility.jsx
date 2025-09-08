@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useConfig } from '../../context/ConfigContext';
+import { useTranslation } from 'react-i18next';
 
 const Accessibility = () => {
   const { isMultiLanguage, supportedLanguages } = useConfig();
   const [highContrast, setHighContrast] = useState(false);
+  const { t } = useTranslation();
 
   return (
     <main
@@ -14,7 +16,7 @@ const Accessibility = () => {
         padding: '1rem'
       }}
     >
-      <h1 tabIndex="0">Accessibilité</h1>
+      <h1 tabIndex="0">{t('Accessibilité')}</h1>
       <button
         onClick={() => setHighContrast(!highContrast)}
         aria-pressed={highContrast}

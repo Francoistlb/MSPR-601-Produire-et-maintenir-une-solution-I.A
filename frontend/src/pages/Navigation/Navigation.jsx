@@ -3,6 +3,7 @@ import './Home.css';
 import { NavLink } from 'react-router-dom';
 import { useConfig } from '../../context';
 import { useTranslation } from 'react-i18next';
+import i18n from '../../i18n';
 
 const Navigation = () => {
   const { countryName, isDatavizEnabled } = useConfig();
