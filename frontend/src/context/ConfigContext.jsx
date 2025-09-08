@@ -38,20 +38,22 @@ export function ConfigProvider({ children }) {
   // Configuration des pays supportés (doit correspondre au backend)
   const COUNTRY_CONFIGS = {
     'usa': {
-      name: 'États-Unis',
+      name: 'United States',
       dataviz_enabled: true,        // ✅ Accès aux tableaux de bord
       technical_api_enabled: true,   // ✅ Accès à l'API technique
       rgpd: false,
-      multi_language: false,
-      languages: ['en']
+      multi_language: true,
+      languages: ['en', 'fr'],
+      defaultLanguage: 'en'
     },
     'france': {
       name: 'France',
       dataviz_enabled: true,        // ✅ Accès aux tableaux de bord
       technical_api_enabled: false,  // ❌ Pas d'accès à l'API technique
       rgpd: true,
-      multi_language: false,
-      languages: ['fr']
+      multi_language: true,
+      languages: ['fr', 'en'],
+      defaultLanguage: 'fr'
     },
     'switzerland': {
       name: 'Suisse',
@@ -59,7 +61,17 @@ export function ConfigProvider({ children }) {
       technical_api_enabled: false,  // ❌ Pas d'API technique
       rgpd: false,
       multi_language: true,
-      languages: ['fr', 'de', 'it']
+      languages: ['fr', 'de', 'it'],
+      defaultLanguage: 'fr'
+    },
+    'italy': {
+      name: 'Italie',
+      dataviz_enabled: true,        // ✅ Accès aux tableaux de bord
+      technical_api_enabled: false,  // ❌ Pas d'accès à l'API technique
+      rgpd: true,
+      multi_language: true,
+      languages: ['it', 'en', 'fr'],
+      defaultLanguage: 'it'
     }
   };
 
@@ -95,6 +107,7 @@ export function ConfigProvider({ children }) {
     isRGPDEnabled: countryConfig?.rgpd ?? false,
     isMultiLanguage: countryConfig?.multi_language ?? false,
     supportedLanguages: countryConfig?.languages ?? ['en'],
+    defaultLanguage: countryConfig?.defaultLanguage ?? 'en',
   };
 
   console.log('🔧 Configuration finale:', config);
