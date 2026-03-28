@@ -3,10 +3,32 @@
 Configuration des tests pour l'API COVID-19 & Mpox
 """
 
-# 1) === Variables d'environnement de test (AVANT TOUT IMPORT DE L'APP) ===
+# 1) === Chargement du fichier .env.docker AVANT TOUT ===
 import os
-os.environ["ENV"] = "test"
+from pathlib import Path
+
+# Charger le fichier .env.docker du projet
+try:
+    from dotenv import load_dotenv
+    env_docker_path = Path(__file__).parent.parent.parent / ".env.docker"
+    load_dotenv(env_docker_path, override=True)  # ← FORCER L'OVERRIDE !
+    print(f"✅ Fichier .env.docker chargé depuis: {env_docker_path}")
+    print(f"🔍 COUNTRY: {os.environ.get('COUNTRY')}")
+    print(f"🔍 DATABASE_URL: {os.environ.get('DATABASE_URL')}")
+except ImportError:
+    print("⚠️ python-dotenv non installé, chargement manuel des variables")
+
+# FORCER LA DATABASE_URL POUR LES TESTS
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test.db"
+print(f"🔧 DATABASE_URL forcée pour tests: {os.environ['DATABASE_URL']}")
+
+# Variables d'environnement de test par défaut (fallback)
+os.environ.setdefault("ENV", "test")
+os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///./test.db")
+os.environ.setdefault("COUNTRY", "docker")
+os.environ.setdefault("SECRET_KEY", "test-secret-key-not-for-production")
+os.environ.setdefault("ALGORITHM", "HS256")
+os.environ.setdefault("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
 
 # 2) === Imports standard ===
 import asyncio
@@ -25,14 +47,23 @@ from app.models.models import User, DLocation
 from app.core.security import get_password_hash
 
 # 4) === Moteur / session SQLAlchemy pour les tests ===
-TEST_DATABASE_URL = os.environ["DATABASE_URL"]
+# Utiliser la database URL du fichier .env.docker (SQLite pour tests)
+TEST_DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite+aiosqlite:///./test.db")
+print(f"🔧 Utilisation de la DB: {TEST_DATABASE_URL}")
 
-test_engine = create_async_engine(
-    TEST_DATABASE_URL,
-    echo=False,
-    # connect_args peut être omis avec aiosqlite ; on le garde par sécurité
-    connect_args={"check_same_thread": False}
-)
+# Configuration spécifique pour SQLite en tests
+if "sqlite" in TEST_DATABASE_URL:
+    test_engine = create_async_engine(
+        TEST_DATABASE_URL,
+        echo=False,
+        # Pas de connect_args pour SQLite asyncio
+    )
+else:
+    # Configuration PostgreSQL si nécessaire
+    test_engine = create_async_engine(
+        TEST_DATABASE_URL,
+        echo=False,
+    )
 
 TestSessionLocal = sessionmaker(
     bind=test_engine,
